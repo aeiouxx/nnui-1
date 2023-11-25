@@ -1,11 +1,22 @@
 cmake_minimum_required(VERSION 3.16)
 project(astar LANGUAGES CXX)
 
-# Copy all executable and dynamic libraries to bin folder. 
+set(BUILD_SHARED_LIBS OFF)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+# Select a compiler =============================================================
+set(CMAKED_EXPORT_COMPILE_COMMANDS ON)
+find_program(CLANG_FOUND "clang")
+find_program(CLANGXX_FOUND "clang++")
+if (CLANG_FOUND AND CLANGXX_FOUND)
+    message(STATUS "Found CLANG, CLANG++ using for build")
+    set(CMAKE_C_COMPILER ${CLANG_FOUND})
+    set(CMAKE_CXX_COMPILER ${CLANGXX_FOUND})
+else ()
+    message(STATUS "CLANG, CLANG++ not found, using default compiler")
+endif()
 
-# Generate exports for clangd.
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+#================================================================================
+
 #= TinyFileDialogs ==============================================================
 set(TINYFILEDIALOGS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ext/tinyfiledialogs)
 add_library(tinyfiledialogs STATIC ${TINYFILEDIALOGS_DIR}/tinyfiledialogs.cpp)
