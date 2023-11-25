@@ -1,0 +1,32 @@
+
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build-ubuntu:
+    runs-on: ubuntu-latest
+    container: aeiouxx/sfml-ci:latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build
+      run: |
+        mkdir build
+        cd build
+        cmake ..
+        make
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: |
+        choco install cmake
+    - name: Build
+      run: |
+        mkdir build
+        cd build
+        cmake ..
+        cmake --build . --config Release
