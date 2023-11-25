@@ -4,15 +4,27 @@ project(astar LANGUAGES CXX)
 option(USE_CLANG "Try to use clang compiler" OFF)
 set(BUILD_SHARED_LIBS OFF)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-#= Select a compiler =============================================================
+#= Select a compiler ============================================================
 set(CMAKED_EXPORT_COMPILE_COMMANDS ON)
 if (USE_CLANG)
     find_program(CLANG_FOUND "clang")
     find_program(CLANGXX_FOUND "clang++")
     if (CLANG_FOUND AND CLANGXX_FOUND)
         message(STATUS "Found CLANG, CLANG++ using for build")
+        set(COMPILE_COMMANDS_SRC "${CMAKE_BINARY_DIR}/compile_commands.json")
+        set(COMPILE_COMMANDS_DST "${CMAKE_SOURCE_DIR}/compile_commands.json")
         set(CMAKE_C_COMPILER ${CLANG_FOUND})
         set(CMAKE_CXX_COMPILER ${CLANGXX_FOUND})
+        if (WIN32)
+            message(STATUS "copying compile_commands.json to source dir")
+            execute_process(
+                COMMAND ${CMAKE_COMMAND} -E copy
+                ${COMPILE_COMMANDS_SRC} ${COMPILE_COMMANDS_DST})
+        else()
+            execute_process(
+                COMMAND ${CMAKE_COMMAND} -E create_symlink 
+                ${COMPILE_COMMANDS_SRC} ${COMPILE_COMMANDS_DST})
+        endif()
     else ()
         message(STATUS "CLANG, CLANG++ not found, using default compiler")
     endif()
@@ -32,16 +44,19 @@ FetchContent_Declare(SFML
     GIT_REPOSITORY https://github.com/SFML/SFML.git
     GIT_TAG        2.6.x)
 FetchContent_MakeAvailable(SFML)
-#===============================================================================
-# My actual application =========================================================
+#================================================================================
+#= My actual application ========================================================
 set(EXECUTABLE_FLAGS "")
+set(SFML_LIBRARIES sfml-graphics sfml-window sfml-system)
 if (WIN32)
+    set(STATUS "Building for windows, adding WIN32 flag, linking againts sfml-main")
     set(EXECUTABLE_FLAGS WIN32)
+    list(PREPEND SFML_LIBRARIES sfml-main)
 endif()
 
 set(SOURCES src/main.cpp)
 add_executable(astar ${EXECUTABLE_FLAGS} ${SOURCES})
-target_link_libraries(astar PRIVATE sfml-graphics sfml-window sfml-system tinyfiledialogs)
+target_link_libraries(astar PRIVATE ${SFML_LIBRARIES} tinyfiledialogs)
 target_compile_features(astar PRIVATE cxx_std_17)
 #================================================================================
 

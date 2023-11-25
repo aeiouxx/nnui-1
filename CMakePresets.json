@@ -10,7 +10,7 @@
       "name": "base-debug",
       "hidden": true,
       "description": "Base debug configuration",
-      "binaryDir": "${sourceDir}/build/${presetName}",
+      "binaryDir": "${sourceDir}/build/${presetName}/",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}"
@@ -20,7 +20,7 @@
       "name": "base-release",
       "hidden": true,
       "description": "Base release configuration",
-      "binaryDir": "${sourceDir}/build/${presetName}",
+      "binaryDir": "${sourceDir}/build/${presetName}/",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}"

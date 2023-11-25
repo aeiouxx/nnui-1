@@ -50,3 +50,5 @@ out/
 build/
 ext/*/build/
 .cache/
+install/
+compile_commands.json
