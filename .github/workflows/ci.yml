@@ -29,8 +29,8 @@ jobs:
         path: |
           C:\ProgramData\chocolatey\lib
           C:\ProgramData\chocolatey\bin
-          key: ${{ runner.os }}-choco-cmake-${{ hashFiles('**/*.cpp', '**/*.h', '**/CMakeLists.txt') }}
-          restore-keys: |
+        key: ${{ runner.os }}-choco-cmake-${{ hashFiles('**/*.cpp', '**/*.h', '**/CMakeLists.txt') }}
+        restore-keys: |
             ${{ runner.os }}-choco-cmake-
 
     - name: Install dependencies
