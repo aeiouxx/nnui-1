@@ -34,12 +34,14 @@ FetchContent_Declare(SFML
 FetchContent_MakeAvailable(SFML)
 #===============================================================================
 # My actual application =========================================================
+set(EXECUTABLE_FLAGS "")
 if (WIN32)
-    add_executable(astar WIN32 src/main.cpp)
-else()
-    add_executable(astar src/main.cpp)
+    set(EXECUTABLE_FLAGS WIN32)
 endif()
-target_link_libraries(astar PRIVATE sfml-main sfml-graphics sfml-window sfml-system tinyfiledialogs)
+
+set(SOURCES src/main.cpp)
+add_executable(astar ${EXECUTABLE_FLAGS} ${SOURCES})
+target_link_libraries(astar PRIVATE sfml-graphics sfml-window sfml-system tinyfiledialogs)
 target_compile_features(astar PRIVATE cxx_std_17)
 #================================================================================
 
