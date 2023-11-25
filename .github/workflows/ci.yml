@@ -22,19 +22,24 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Cache dependencies
+    - name: Cache cmake
       uses: actions/cache@v2
-      id: cache-choco
       with:
         path: |
-          C:\ProgramData\chocolatey\lib
-          C:\ProgramData\chocolatey\bin
-        key: ${{ runner.os }}-choco-cmake-${{ hashFiles('**/*.cpp', '**/*.h', '**/CMakeLists.txt') }}
-        restore-keys: |
-            ${{ runner.os }}-choco-cmake-
+          C:\ProgramData\chocolatey\lib\cmake
+          C:\ProgramData\chocolatey\bin\cmake.exe
+        key: ${{ runner.os }}-choco-cmake
+    
+    - name: Check cmake installed
+      id: check-cmake
+      run: |
+        if (Test-Path "C:\ProgramData\chocolatey\bin\cmake.exe") {
+          echo "CMake is already installed."
+          echo "::set-output name=installed::true"
+        }
 
-    - name: Install dependencies
-      if: steps.cache-choco.outputs.cache-hit != 'true'
+    - name: Install cmake
+      if: steps.check-cmake.outputs.installed != 'true'
       run: |
         choco install cmake
 
