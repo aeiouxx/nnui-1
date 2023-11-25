@@ -10,7 +10,7 @@
       "name": "base-debug",
       "hidden": true,
       "description": "Base debug configuration",
-      "binaryDir": "${sourceDir}/build/${presetName}",
+      "binaryDir": "${sourceDir}/build/${presetName}/",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}"
@@ -20,43 +20,99 @@
       "name": "base-release",
       "hidden": true,
       "description": "Base release configuration",
-      "binaryDir": "${sourceDir}/build/${presetName}",
+      "binaryDir": "${sourceDir}/build/${presetName}/",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}"
       }
     },
     {
-      "name": "base-ninja-debug",
-      "hidden": true,
-      "description": "Base ninja debug configuration",
-      "inherits": ["base-debug"],
+      "name": "debug",
+      "description": "Ninja debug configuration",
+      "inherits": [ "base-debug" ],
       "cacheVariables": {
         "CMAKE_GENERATOR": "Ninja",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "USE_CLANG": "ON"
       }
     },
     {
-      "name": "base-ninja-release",
-      "hidden": true,
-      "description": "Base ninja release configuration",
-      "inherits": ["base-release"],
+      "name": "release",
+      "description": "Ninja release configuration",
+      "inherits": [ "base-release" ],
       "cacheVariables": {
         "CMAKE_GENERATOR": "Ninja",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "USE_CLANG": "ON"
+      }
+    },
+    {
+      "name": "msvc-x64-debug",
+      "displayName": "MSVC x64 Debug",
+      "inherits": [ "base-debug" ],
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      }
+    },
+    {
+      "name": "msvc-x64-release",
+      "displayName": "MSVC x64 Release",
+      "inherits": [ "base-release" ],
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      }
+    },
+    {
+      "name": "msvc-x32-debug",
+      "displayName": "MSVC x32 debug",
+      "inherits": [ "base-debug" ],
+      "architecture": {
+        "value": "x32",
+        "strategy": "external"
+      }
+    },
+    {
+      "name": "msvc-x32-release",
+      "displayName": "MSVC x32 Release",
+      "inherits": [ "base-release" ],
+      "architecture": {
+        "value": "x32",
+        "strategy": "external"
       }
     }
   ],
   "buildPresets": [
     {
-      "name": "ninja-debug",
+      "name": "msvc-x64-debug",
       "description": "Debug build",
-      "configurePreset": "base-ninja-debug"
+      "configurePreset": "msvc-x64-debug"
     },
     {
-      "name": "ninja-release",
+      "name": "msvc-x64-release",
       "description": "Release build",
-      "configurePreset": "base-ninja-release"
+      "configurePreset": "msvc-x64-release"
+    },
+    {
+      "name": "msvc-x32-debug",
+      "description": "Debug build",
+      "configurePreset": "msvc-x32-debug"
+    },
+    {
+      "name": "msvc-x32-release",
+      "description": "Release build",
+      "configurePreset": "msvc-x32-release"
+    },
+    {
+      "name": "nj-debug",
+      "description": "Debug build using clang, ninja.",
+      "configurePreset": "debug"
+    },
+    {
+      "name": "nj-release",
+      "description": "Release build using clang, ninja.",
+      "configurePreset": "release"
     }
   ]
 }
