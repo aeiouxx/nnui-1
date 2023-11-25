@@ -1,20 +1,24 @@
 cmake_minimum_required(VERSION 3.16)
 project(astar LANGUAGES CXX)
 
+option(USE_CLANG "Try to use clang compiler" OFF)
 set(BUILD_SHARED_LIBS OFF)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-# Select a compiler =============================================================
+#= Select a compiler =============================================================
 set(CMAKED_EXPORT_COMPILE_COMMANDS ON)
-find_program(CLANG_FOUND "clang")
-find_program(CLANGXX_FOUND "clang++")
-if (CLANG_FOUND AND CLANGXX_FOUND)
-    message(STATUS "Found CLANG, CLANG++ using for build")
-    set(CMAKE_C_COMPILER ${CLANG_FOUND})
-    set(CMAKE_CXX_COMPILER ${CLANGXX_FOUND})
+if (USE_CLANG)
+    find_program(CLANG_FOUND "clang")
+    find_program(CLANGXX_FOUND "clang++")
+    if (AND CLANG_FOUND AND CLANGXX_FOUND)
+        message(STATUS "Found CLANG, CLANG++ using for build")
+        set(CMAKE_C_COMPILER ${CLANG_FOUND})
+        set(CMAKE_CXX_COMPILER ${CLANGXX_FOUND})
+    else ()
+        message(STATUS "CLANG, CLANG++ not found, using default compiler")
+    endif()
 else ()
-    message(STATUS "CLANG, CLANG++ not found, using default compiler")
+    message(STATUS "Using default compiler")
 endif()
-
 #================================================================================
 
 #= TinyFileDialogs ==============================================================

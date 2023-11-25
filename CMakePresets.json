@@ -7,36 +7,56 @@
   },
   "configurePresets": [
     {
-      "name": "ninja-install",
-      "description": "Install with Ninja.",
-      "generator": "Ninja",
-      "binaryDir": "${sourceDir}/build",
+      "name": "base-debug",
+      "hidden": true,
+      "description": "Base debug configuration",
+      "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-        "CMAKE_INSTALL_PREFIX": "${sourceDir}/install"
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}"
       }
     },
     {
-      "name": "ninja-debug",
-      "description": "Use Ninja generator",
-      "generator": "Ninja",
-      "binaryDir": "${sourceDir}/build",
+      "name": "base-release",
+      "hidden": true,
+      "description": "Base release configuration",
+      "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}"
+      }
+    },
+    {
+      "name": "base-ninja-debug",
+      "hidden": true,
+      "description": "Base ninja debug configuration",
+      "inherits": ["base-debug"],
+      "cacheVariables": {
+        "CMAKE_GENERATOR": "Ninja",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
     },
     {
-      "name": "ninja-release",
-      "description": "Use Ninja generator",
-      "generator": "Ninja",
-      "binaryDir": "${sourceDir}/build",
+      "name": "base-ninja-release",
+      "hidden": true,
+      "description": "Base ninja release configuration",
+      "inherits": ["base-release"],
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_GENERATOR": "Ninja",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
     }
-
+  ],
+  "buildPresets": [
+    {
+      "name": "ninja-debug",
+      "description": "Debug build",
+      "configurePreset": "base-ninja-debug"
+    },
+    {
+      "name": "ninja-release",
+      "description": "Release build",
+      "configurePreset": "base-ninja-release"
+    }
   ]
 }

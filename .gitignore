@@ -47,5 +47,6 @@ bld/
 [Ll]og/
 [Ll]ogs/
 out/
+build/
 ext/*/build/
 .cache/
