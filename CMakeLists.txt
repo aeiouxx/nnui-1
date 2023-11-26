@@ -10,11 +10,11 @@ if (USE_CLANG)
     find_program(CLANG_FOUND "clang")
     find_program(CLANGXX_FOUND "clang++")
     if (CLANG_FOUND AND CLANGXX_FOUND)
-        message(STATUS "Found CLANG, CLANG++ using for build")
+        message(STATUS "Found Clang, Clang++ using for build")
         set(CMAKE_C_COMPILER ${CLANG_FOUND})
         set(CMAKE_CXX_COMPILER ${CLANGXX_FOUND})
     else ()
-        message(STATUS "CLANG, CLANG++ not found, using default compiler")
+        message(STATUS "Clang, Clang++ not found, using default compiler")
     endif()
 else ()
     message(STATUS "Using default compiler")
@@ -27,19 +27,18 @@ add_library(tinyfiledialogs STATIC ${TINYFILEDIALOGS_DIR}/tinyfiledialogs.cpp)
 target_include_directories(tinyfiledialogs PRIVATE ${TINYFILEDIALOGS_DIR})
 #================================================================================
 #= SFML =========================================================================
-message(STATUS "Fetching SFML...")
 include(FetchContent)
 FetchContent_Declare(SFML
     GIT_REPOSITORY https://github.com/SFML/SFML.git
     GIT_TAG        2.6.x)
+message(STATUS "SFML -> MakeAvailable...")
 FetchContent_MakeAvailable(SFML)
-message(STATUS "SFML fetched")
 
 if (USE_CLANG AND CLANG_FOUND AND CLANGXX_FOUND) 
     set(COMPILE_COMMANDS_SRC "${CMAKE_BINARY_DIR}/compile_commands.json")
     set(COMPILE_COMMANDS_DST "${CMAKE_SOURCE_DIR}/compile_commands.json")
     if (WIN32)
-        message(STATUS "copying compile_commands.json to source dir")
+        message(STATUS "Copying compile_commands.json to source dir")
         execute_process(
             COMMAND ${CMAKE_COMMAND} -E copy
             ${COMPILE_COMMANDS_SRC} ${COMPILE_COMMANDS_DST})
@@ -53,22 +52,24 @@ endif()
 #= My actual application ========================================================
 set(EXECUTABLE_FLAGS "")
 set(ASTAR_DEFINITIONS "")
+set(SFML_LIBRARIES
+    sfml-graphics
+    sfml-window
+    sfml-system)
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     message(STATUS "Building debug version")
     set(ASTAR_DEFINITIONS "ASTAR_DEBUG")
 else()
     message(STATUS "Building release version")
-endif()
-set(SFML_LIBRARIES
-    sfml-graphics
-    sfml-window
-    sfml-system)
-if (WIN32) 
-    set(EXECUTABLE_FLAGS WIN32)
-    list(PREPEND SFML_LIBRARIES sfml-main)
+    if (WIN32)
+        message(STATUS "=====================> LINKING AGAINST SFML-MAIN")
+        set(EXECUTABLE_FLAGS WIN32) # hides the console window on windows
+        list(PREPEND SFML_LIBRARIES sfml-main)
+    endif()
 endif()
 set(SOURCES src/main.cc
             src/application.cc
+            src/common/logger.cc
             src/common/grid.cc)
 add_executable(astar ${EXECUTABLE_FLAGS} ${SOURCES})
 target_link_libraries(astar PRIVATE ${SFML_LIBRARIES} tinyfiledialogs)
