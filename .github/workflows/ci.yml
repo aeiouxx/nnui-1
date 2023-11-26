@@ -46,22 +46,22 @@ jobs:
           C:\ProgramData\chocolatey\bin\cmake.exe
         key: ${{ runner.os }}-choco-cmake
     
-    - name: Check cmake installed
+    - name: Check if CMake is installed
       id: check-cmake
       shell: pwsh
       run: |
-        $cmakeInstalled = $null
-        try {
-          $cmakeInstalled = cmake --version
-          echo "CMake version: $cmakeInstalled"
-          echo "installed=true" >> $GITHUB_OUTPUT
-        } catch {
-          echo "CMake not installed"
-          echo "installed=false" >> $GITHUB_OUTPUT
+        $ErrorActionPreference = "Continue"
+        cmake --version
+        if ($?) {
+          echo "CMake is installed."
+          echo "CMAKE_INSTALLED=true" | Out-File -Append -FilePath $env:GITHUB_ENV
+        } else {
+          echo "CMake is not installed."
+          echo "CMAKE_INSTALLED=false" | Out-File -Append -FilePath $env:GITHUB_ENV
         }
 
     - name: Install cmake
-      if: steps.check-cmake.outputs.installed != 'true'
+      if : env.CMAKE_INSTALLED == 'false'
       run: |
         choco install cmake
 
