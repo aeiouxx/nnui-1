@@ -16,12 +16,22 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+
+    - name: Cache build
+      uses: actions/cache@v2
+      with:
+        path: |
+          build
+        key: ${{ runner.os }}-build-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake') }}
+        restore-keys: |
+          ${{ runner.os }}-build-
+
     - name: Build
       run: |
         mkdir build
         cd build
         cmake ..
-        make
+        make -j
 
   build-windows:
     runs-on: windows-latest
@@ -39,9 +49,13 @@ jobs:
     - name: Check cmake installed
       id: check-cmake
       run: |
-        if (Test-Path "C:\ProgramData\chocolatey\bin\cmake.exe") {
-          echo "CMake is already installed."
-          echo "::set-output name=installed::true"
+        cmake --version
+        if ($?) {
+          echo "cmake installed"
+          echo "installed=true" >> $GITHUB_OUTPUT
+        } else {
+          echo "cmake not installed or ur dumb"
+          echo "installed=false" >> $GITHUB_OUTPUT
         }
 
     - name: Install cmake
@@ -49,9 +63,18 @@ jobs:
       run: |
         choco install cmake
 
-    - name: Build
+    - name: Cache build
+      uses: actions/cache@v2
+      with:
+        path: |
+          build
+        key: ${{ runner.os }}-build-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake') }}
+        restore-keys: |
+          ${{ runner.os }}-build-
+
+    - name: Compile application
       run: |
         mkdir build
         cd build
         cmake ..
-        cmake --build . --config Release
+        cmake --build . --target ALL_BUILD --config Release -- /nologo /verbosity:minimal /maxcpucount
