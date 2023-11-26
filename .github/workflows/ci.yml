@@ -28,7 +28,7 @@ jobs:
 
     - name: Build
       run: |
-        mkdir build
+        mkdir -p build
         cd build
         cmake ..
         make -j
@@ -72,9 +72,12 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-build-
 
+    - name: Create build directory
+      run: |
+        if (-Not (Test-Path "build")) { New-Item -Path "build" -ItemType Directory }       
+
     - name: Compile application
       run: |
-        mkdir build
         cd build
         cmake ..
         cmake --build . --target ALL_BUILD --config Release -- /nologo /verbosity:minimal /maxcpucount
