@@ -13,8 +13,10 @@ class Grid {
   const CellType& At(int row, int col) const;
   CellType& At(int row, int col);
 
+  const bool IsTraversable(int row, int col) const;
+
  private:
-  int CalculateIndex(int row, int col) const;
+  const int CalculateIndex(int row, int col) const;
 
  private:
   std::vector<CellType> grid_;
