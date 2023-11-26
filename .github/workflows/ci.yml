@@ -38,13 +38,13 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Cache cmake
-      uses: actions/cache@v2
-      with:
-        path: |
-          C:\ProgramData\chocolatey\lib\cmake
-          C:\ProgramData\chocolatey\bin\cmake.exe
-        key: ${{ runner.os }}-choco-cmake
+    # - name: Cache cmake
+    #   uses: actions/cache@v2
+    #   with:
+    #     path: |
+    #       C:\ProgramData\chocolatey\lib\cmake
+    #       C:\ProgramData\chocolatey\bin\cmake.exe
+    #     key: ${{ runner.os }}-choco-cmake
     
     - name: Check if CMake is installed
       id: check-cmake
