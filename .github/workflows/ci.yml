@@ -48,13 +48,15 @@ jobs:
     
     - name: Check cmake installed
       id: check-cmake
+      shell: pwsh
       run: |
-        cmake --version
-        if ($?) {
-          echo "cmake installed"
+        $cmakeInstalled = $null
+        try {
+          $cmakeInstalled = cmake --version
+          echo "CMake version: $cmakeInstalled"
           echo "installed=true" >> $GITHUB_OUTPUT
-        } else {
-          echo "cmake not installed or ur dumb"
+        } catch {
+          echo "CMake not installed"
           echo "installed=false" >> $GITHUB_OUTPUT
         }
 
