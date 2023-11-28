@@ -6,7 +6,6 @@ namespace astar {
   Class(Class&&) = delete;                 \
   Class& operator=(const Class&) = delete; \
   Class& operator=(Class&&) = delete;
-
 enum class CellType {
   kEmpty = 0,
   kStart,
@@ -21,7 +20,6 @@ enum class Orientation {
   kSouth,
   kWest
 };
-
 enum ActionCost {
   kMoveForward = 5,
   kTurn90 = 2,

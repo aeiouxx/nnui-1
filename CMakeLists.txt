@@ -20,20 +20,18 @@ else ()
     message(STATUS "Using default compiler")
 endif()
 #================================================================================
-
-#= TinyFileDialogs ==============================================================
-set(TINYFILEDIALOGS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ext/tinyfiledialogs)
-add_library(tinyfiledialogs STATIC ${TINYFILEDIALOGS_DIR}/tinyfiledialogs.cpp)
-target_include_directories(tinyfiledialogs PRIVATE ${TINYFILEDIALOGS_DIR})
-#================================================================================
-#= SFML =========================================================================
+#= wxWidgets ====================================================================
+message(STATUS "wxWidgets... (will take a while to download and build if not populated)")
+set(wxBUILD_SHARED OFF)
+set(wxBUILD_PRECOMP OFF)
+set(wxBUILD_MONOLITHIC OFF)
 include(FetchContent)
-FetchContent_Declare(SFML
-    GIT_REPOSITORY https://github.com/SFML/SFML.git
-    GIT_TAG        2.6.x)
-message(STATUS "SFML -> MakeAvailable...")
-FetchContent_MakeAvailable(SFML)
-
+FetchContent_Declare(
+    wxWidgets
+    GIT_REPOSITORY https://github.com/wxWidgets/wxWidgets.git
+    GIT_TAG        v3.2.4)
+FetchContent_MakeAvailable(wxWidgets)
+#================================================================================
 if (USE_CLANG AND CLANG_FOUND AND CLANGXX_FOUND) 
     set(COMPILE_COMMANDS_SRC "${CMAKE_BINARY_DIR}/compile_commands.json")
     set(COMPILE_COMMANDS_DST "${CMAKE_SOURCE_DIR}/compile_commands.json")
@@ -48,41 +46,27 @@ if (USE_CLANG AND CLANG_FOUND AND CLANGXX_FOUND)
             ${COMPILE_COMMANDS_SRC} ${COMPILE_COMMANDS_DST})
     endif()
 endif()
-#================================================================================
 #= My actual application ========================================================
 set(EXECUTABLE_FLAGS "")
 set(ASTAR_DEFINITIONS "")
-set(SFML_LIBRARIES
-    sfml-graphics
-    sfml-window
-    sfml-system)
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     message(STATUS "Building debug version")
     set(ASTAR_DEFINITIONS "ASTAR_DEBUG")
 else()
     message(STATUS "Building release version")
-    if (WIN32)
-        message(STATUS "=====================> LINKING AGAINST SFML-MAIN")
-        set(EXECUTABLE_FLAGS WIN32) # hides the console window on windows
-        list(PREPEND SFML_LIBRARIES sfml-main)
-    endif()
+endif()
+if (WIN32)
+  set(EXECUTABLE_FLAGS WIN32)
 endif()
 set(SOURCES src/main.cc
-            src/application.cc
-            src/common/logger.cc
-            src/common/grid.cc)
+            src/astar.cc
+            src/common/grid.cc
+            src/ui/my-frame.cc
+            src/ui/bitmap-panel.cc)
 add_executable(astar ${EXECUTABLE_FLAGS} ${SOURCES})
-target_link_libraries(astar PRIVATE ${SFML_LIBRARIES} tinyfiledialogs)
-target_compile_features(astar PRIVATE cxx_std_17)
+target_include_directories(astar PRIVATE ${wxWidgets_SOURCE_DIR}/include)
+target_link_libraries(astar PRIVATE wx::base wx::core)
+target_compile_features(astar PRIVATE cxx_std_20)
 target_compile_definitions(astar PRIVATE ${ASTAR_DEFINITIONS})
-#================================================================================
-
-if(WIN32)
-    add_custom_command(
-        TARGET astar 
-        COMMENT "Copy OpenAL DLL"
-        PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${SFML_SOURCE_DIR}/extlibs/bin/$<IF:$<EQUAL:${CMAKE_SIZEOF_VOID_P},8>,x64,x86>/openal32.dll $<TARGET_FILE_DIR:astar>
-        VERBATIM)
-endif()
 
 install(TARGETS astar)

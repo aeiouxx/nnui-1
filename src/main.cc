@@ -1,9 +1,3 @@
-#include "application.h"
-#include "common/logger.h"
-
-int main() {
-  LOG_INFO("Starting application.");
-  astar::Application app;
-  app.Run();
-  return 0;
-}
+#include "astar.h"
+#include <wx/wx.h>
+wxIMPLEMENT_APP(astar::Astar);
