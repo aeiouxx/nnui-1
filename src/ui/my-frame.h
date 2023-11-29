@@ -4,23 +4,24 @@
 #include <wx/frame.h>
 #include <wx/wx.h>
 
-#include "bitmap-panel.h"
+#include "maze-panel.h"
 namespace astar::ui {
-enum {
-  kIdHello = 1
-};
 class MyFrame : public wxFrame {
  public:
   MyFrame();
 
- private:
+ protected:
   void OnExit(wxCommandEvent& event);
   void OnOpenFile(wxCommandEvent& event);
-  void LoadBitmap(const wxString& path);
-  void DisplayBitmap(const wxString& path);
+  void OnResize(wxSizeEvent& event);
+  void ProcessBitmap(const wxString& path);
+
+  void PreparePanel();
+  void PrepareMenu();
+  void BindEvents();
 
  private:
-  BitmapPanel* bitmap_panel_;
+  MazePanel* panel_;
 };
 }  // namespace astar::ui
 #endif

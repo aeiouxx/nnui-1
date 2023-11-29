@@ -3,10 +3,18 @@
 #include <vector>
 
 #include "definitions.h"
-namespace astar {
+namespace astar::common {
+// todo: Should have implicit move/copy constructors and assignment operators
+// because of the vector.
 class Grid {
  public:
   Grid(int rows, int cols);
+  // Could be default
+  Grid(const Grid& other);
+  Grid& operator=(const Grid& other);
+  Grid(Grid&& other) noexcept;
+  Grid& operator=(Grid&& other) noexcept;
+
   const int GetRows() const;
   const int GetCols() const;
 
@@ -23,5 +31,5 @@ class Grid {
   int rows_;
   int cols_;
 };
-}  // namespace astar
+}  // namespace astar::common
 #endif
