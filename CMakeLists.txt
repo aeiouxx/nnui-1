@@ -21,6 +21,7 @@ else ()
 endif()
 #================================================================================
 #= wxWidgets ====================================================================
+# should find a way to minimize build 750 MB is a joke
 message(STATUS "wxWidgets... (will take a while to download and build if not populated)")
 set(wxBUILD_SHARED OFF)
 set(wxBUILD_PRECOMP OFF)
