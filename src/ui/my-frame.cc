@@ -87,7 +87,7 @@ void MyFrame::ProcessBitmap(const wxString& path) {
       100, this, wxPD_CAN_ABORT | wxPD_AUTO_HIDE | wxPD_ELAPSED_TIME);
   wxImage image(path);
   if (!image.IsOk()) {
-    wxLogError("Cannot load file '%s'.", path);
+    wxMessageBox("Failed to load bitmap file.", "Error", wxOK | wxICON_ERROR);
     return;
   }
   progressDialog.Update(10, "Bitmap loaded, processing...");

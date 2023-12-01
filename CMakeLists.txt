@@ -25,6 +25,7 @@ message(STATUS "wxWidgets... (will take a while to download and build if not pop
 set(wxBUILD_SHARED OFF)
 set(wxBUILD_PRECOMP OFF)
 set(wxBUILD_MONOLITHIC OFF)
+set(wxUSE_XRC OFF)
 include(FetchContent)
 FetchContent_Declare(
     wxWidgets

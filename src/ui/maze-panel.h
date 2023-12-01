@@ -41,8 +41,6 @@ class MazePanel : public wxPanel {
   void UpdateSizeInformation();
   wxColour GetCellColour(const common::CellType& cellType) const;
   wxPoint GetCellFromMousePosition(const wxPoint& mousePosition) const;
-  // So we don't pan our maze off the screen.
-  void ConstrainPanOffset();
   void UpdateHoveredCell(const wxPoint& cell);
   // Zooming
 

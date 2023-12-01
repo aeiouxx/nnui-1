@@ -17,7 +17,8 @@ MazePanel::MazePanel(wxWindow* parent, wxColour backgroundColour)
       panOffset_(0, 0),
       ctrlDown_(false),
       lastHoveredCell_(kInvalidCell),
-      lastMousePosition_(wxDefaultPosition) {
+      lastMousePosition_(wxDefaultPosition),
+      cellSize_(kMinimumCellSize) {
   SetBackgroundColour(backgroundColour);
   BindEvents();
 }
@@ -49,6 +50,8 @@ void MazePanel::BindEvents() {
 }
 void MazePanel::SetGrid(const Grid& grid) {
   grid_ = grid;
+  panOffset_ = wxDefaultPosition;
+  zoomFactor_ = 1.0f;
   UpdateSizeInformation();
 }
 void MazePanel::SetGrid(Grid&& grid) noexcept {
@@ -92,7 +95,6 @@ void MazePanel::HandleDrag(const wxPoint& mousePosition) {
   if (lastMousePosition_ != wxDefaultPosition) {
     const auto delta = mousePosition - lastMousePosition_;
     panOffset_ += delta;
-    ConstrainPanOffset();
     Refresh();
   }
   lastMousePosition_ = mousePosition;
@@ -124,7 +126,7 @@ void MazePanel::UpdateHoveredCell(const wxPoint& cell) {
   }
 }
 void MazePanel::OnMouseWheel(wxMouseEvent& event) {
-  static constexpr int pixelZoomIncrement = 6;
+  static constexpr int pixelZoomIncrement = 4;
   wxLogDebug("OnMouseWheel");
   if (!ctrlDown_ || grid_.IsEmpty()) {
     return;
@@ -135,10 +137,9 @@ void MazePanel::OnMouseWheel(wxMouseEvent& event) {
     cellSize_ += pixelZoomIncrement;
   } else {
     cellSize_ -= pixelZoomIncrement;
+    cellSize_ = std::max(1, cellSize_);
   }
-  cellSize_ = std::max(cellSize_, kMinimumCellSize);
   double scaleFactor = static_cast<double>(cellSize_) / oldCellSize;
-
   // new offset
   wxPoint cellBeforeZoom = (mousePosition - panOffset_) / oldCellSize;
   wxPoint newMouseCell = mousePosition / oldCellSize;
@@ -198,7 +199,7 @@ void MazePanel::RenderCell(wxDC& dc, const wxPoint& cell) {
   int size = cellSize_ * zoomFactor_;
   wxColour cellColour = GetCellColour(grid_.At(cell.y, cell.x));
   if (cell == lastHoveredCell_) {
-    cellColour = wxColour(123, 22, 222, 255);
+    cellColour = wxColour(192, 192, 192);
   }
   dc.SetBrush(wxBrush(cellColour));
   dc.SetPen(*wxTRANSPARENT_PEN);
@@ -234,12 +235,12 @@ void MazePanel::UpdateSizeInformation() {
 
   // check if we can't fit the entire grid on the screen
   if (screenAspectRatio > gridAspectRatio) {
-    cellSize_ = std::min(cellSize_, size.GetHeight() / grid_.GetRows());
+    cellSize_ =
+        std::max(1, std::min(cellSize_, size.GetHeight() / grid_.GetRows()));
   } else {
-    cellSize_ = std::min(cellSize_, size.GetWidth() / grid_.GetCols());
+    cellSize_ =
+        std::max(1, std::min(cellSize_, size.GetWidth() / grid_.GetCols()));
   }
-
-  ConstrainPanOffset();
 }
 wxPoint MazePanel::GetCellFromMousePosition(
     const wxPoint& mousePosition) const {
@@ -273,18 +274,4 @@ wxColour MazePanel::GetCellColour(const common::CellType& cellType) const {
       return kEmptyCellColour;
   }
 }
-void MazePanel::ConstrainPanOffset() {
-  auto panelSize = GetClientSize();
-
-  int maximumPanOffsetX =
-      std::max(0, grid_.GetCols() * cellSize_ - panelSize.GetWidth());
-  int maximumPanOffsetY =
-      std::max(0, grid_.GetRows() * cellSize_ - panelSize.GetHeight());
-
-  panOffset_.x = std::min(0, panOffset_.x);
-  panOffset_.y = std::min(0, panOffset_.y);
-
-  panOffset_.x = std::max(-maximumPanOffsetX, panOffset_.x);
-  panOffset_.y = std::max(-maximumPanOffsetY, panOffset_.y);
-}
-};  // namespace astar::ui
+}  // namespace astar::ui
