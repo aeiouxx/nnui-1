@@ -4,8 +4,6 @@
 
 #include "definitions.h"
 namespace astar::common {
-// todo: Should have implicit move/copy constructors and assignment operators
-// because of the vector.
 class Grid {
  public:
   Grid(int rows, int cols);
@@ -21,6 +19,8 @@ class Grid {
   const CellType& At(int row, int col) const;
   CellType& At(int row, int col);
 
+  const bool IsEmpty() const;
+  // Anything that is not within the grid in considered not traversable
   const bool IsTraversable(int row, int col) const;
 
  private:

@@ -7,8 +7,13 @@
 #include "maze-panel.h"
 namespace astar::ui {
 class MyFrame : public wxFrame {
+ private:
+  static const wxSize kResolutions[];
+  static const wxColour kBackgroundColour;
+
  public:
   MyFrame();
+  ~MyFrame();
 
  protected:
   void OnExit(wxCommandEvent& event);
@@ -19,9 +24,13 @@ class MyFrame : public wxFrame {
   void PreparePanel();
   void PrepareMenu();
   void BindEvents();
+  void PrepareForScreen();
 
  private:
   MazePanel* panel_;
+#ifdef ASTAR_DEBUG
+  wxLog* logger_;
+#endif
 };
 }  // namespace astar::ui
 #endif

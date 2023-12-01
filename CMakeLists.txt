@@ -68,5 +68,4 @@ target_include_directories(astar PRIVATE ${wxWidgets_SOURCE_DIR}/include)
 target_link_libraries(astar PRIVATE wx::base wx::core)
 target_compile_features(astar PRIVATE cxx_std_20)
 target_compile_definitions(astar PRIVATE ${ASTAR_DEFINITIONS})
-
 install(TARGETS astar)

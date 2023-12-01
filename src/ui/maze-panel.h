@@ -2,45 +2,66 @@
 #define ASTAR_MAZE_PANEL_H
 
 #include <wx/panel.h>
-
-#include <atomic>
-#include <chrono>
+#include <wx/timer.h>
 
 #include "../common/grid.h"
-#include "wx/timer.h"
 namespace astar::ui {
-// todo: if we want to support zoom / pan / mouse hover, will need more
-// sophisticated rendering + event handling. (or could just render the entire
-// grid and use a scrolled window xdd)
 class MazePanel : public wxPanel {
+ private:
+  static constexpr int kMinimumCellSize = 36;
+  static const wxPoint kInvalidCell;
+
  public:
-  MazePanel(wxWindow* parent);
+  MazePanel(wxWindow* parent, wxColour backgroundColor);
+  ~MazePanel();
   void SetGrid(const astar::common::Grid& grid);
   void SetGrid(astar::common::Grid&& grid) noexcept;
   const common::Grid& GetGrid() const;
   common::Grid& GetGrid();
-  void Refresh();
-  // protected:
-  //  void OnPaint(wxPaintEvent& event);
-  //  void OnResize(wxSizeEvent& event);
-  //  void OnMouseClick(wxMouseEvent& event);
-  //  void OnMouseMove(wxMouseEvent& event);
-  //  void OnMouseScroll(wxMouseEvent& event);
-  //  void OnMouseDrag(wxMouseEvent& event);
-  //  void Render(wxDC& dc);
+
  protected:
   void BindEvents();
+  void OnPaint(wxPaintEvent& event);
   void OnResize(wxSizeEvent& event);
   void OnResizeTimer(wxTimerEvent& event);
-  void RefreshInternal();
 
+  // Mouse
+  void OnMouseMove(wxMouseEvent& event);
+  void OnMouseWheel(wxMouseEvent& event);
+  void HandleDrag(const wxPoint& mousePosition);
+  void UpdateCursorAndInteractions(const wxPoint& mousePosition);
+  // Keyboard
+  void OnKeyDown(wxKeyEvent& event);
+  void OnKeyUp(wxKeyEvent& event);
+  // Rendering
+  void Render(wxDC& dc);
+  void RenderCell(wxDC& dc, const wxPoint& cell);
+  // Utilities
+  wxRect GetVisiblePortion() const;
+  void UpdateSizeInformation();
+  wxColour GetCellColour(const common::CellType& cellType) const;
+  wxPoint GetCellFromMousePosition(const wxPoint& mousePosition) const;
+  // So we don't pan our maze off the screen.
+  void ConstrainPanOffset();
+  void UpdateHoveredCell(const wxPoint& cell);
+  // Zooming
+
+  // Panning
  private:
   astar::common::Grid grid_;
-  std::atomic_bool isRedrawing_;
-  // indicates that we received a refresh request while we were
-  // already in the process of redrawing.
-  std::atomic_bool isRedrawPending_;
   wxTimer resizeDebouncer_;
+
+  // RenderInfo
+  wxPoint panOffset_;
+  wxPoint lastMousePosition_;
+  wxPoint lastHoveredCell_;
+  double zoomFactor_;
+  bool ctrlDown_;
+  // Meant to avoid unnecessarily rendering the grid when the user is actively
+  // resizing the window
+  bool shouldRenderGrid_;
+  // tf is this: https://en.wikipedia.org/wiki/Fitts's_law
+  int cellSize_;
 };
 }  // namespace astar::ui
 #endif

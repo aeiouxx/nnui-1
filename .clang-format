@@ -1,2 +1,6 @@
 BasedOnStyle: Google
 AllowShortEnumsOnASingleLine: false
+# i hate that so much
+AllowShortIfStatementsOnASingleLine: Never
+# And i hate this even more
+AllowShortFunctionsOnASingleLine: None
