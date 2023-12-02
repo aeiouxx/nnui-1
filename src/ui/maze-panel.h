@@ -4,6 +4,9 @@
 #include <wx/panel.h>
 #include <wx/timer.h>
 
+#include <mutex>
+#include <thread>
+
 #include "../common/grid.h"
 namespace astar::ui {
 class MazePanel : public wxPanel {
@@ -28,6 +31,7 @@ class MazePanel : public wxPanel {
   // Mouse
   void OnMouseMove(wxMouseEvent& event);
   void OnMouseWheel(wxMouseEvent& event);
+  void OnMouseClick(wxMouseEvent& event);
   void HandleDrag(const wxPoint& mousePosition);
   void UpdateCursorAndInteractions(const wxPoint& mousePosition);
   // Keyboard
@@ -39,12 +43,10 @@ class MazePanel : public wxPanel {
   // Utilities
   wxRect GetVisiblePortion() const;
   void UpdateSizeInformation();
-  wxColour GetCellColour(const common::CellType& cellType) const;
+  wxBrush GetCellBrush(const common::CellType& cellType) const;
   wxPoint GetCellFromMousePosition(const wxPoint& mousePosition) const;
   void UpdateHoveredCell(const wxPoint& cell);
-  // Zooming
 
-  // Panning
  private:
   astar::common::Grid grid_;
   wxTimer resizeDebouncer_;
@@ -55,11 +57,14 @@ class MazePanel : public wxPanel {
   wxPoint lastHoveredCell_;
   double zoomFactor_;
   bool ctrlDown_;
-  // Meant to avoid unnecessarily rendering the grid when the user is actively
-  // resizing the window
   bool shouldRenderGrid_;
-  // tf is this: https://en.wikipedia.org/wiki/Fitts's_law
   int cellSize_;
+
+  // Pathfinding
+  std::thread pathfindingThread_;
+  std::atomic_bool pathfindingThreadRunning_;
+  std::atomic_bool pathfindingThreadShouldStop_;
+  std::mutex gridMutex_;
 };
 }  // namespace astar::ui
 #endif

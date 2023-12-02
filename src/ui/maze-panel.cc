@@ -23,6 +23,10 @@ MazePanel::MazePanel(wxWindow* parent, wxColour backgroundColour)
   BindEvents();
 }
 MazePanel::~MazePanel() {
+  pathfindingThreadShouldStop_ = true;
+  if (pathfindingThread_.joinable()) {
+    pathfindingThread_.join();
+  }
 }
 void MazePanel::BindEvents() {
   Bind(wxEVT_PAINT, &MazePanel::OnPaint, this);
@@ -39,6 +43,43 @@ void MazePanel::BindEvents() {
   Bind(wxEVT_LEFT_UP, [this](wxMouseEvent& e) {
     wxLogDebug("OnLeftUp");
     lastMousePosition_ = wxDefaultPosition;
+    if (!ctrlDown_) {
+      auto cell = GetCellFromMousePosition(e.GetPosition());
+      common::Position startPosition = grid_.GetStart();
+      wxPoint oldStart = wxPoint(startPosition.col, startPosition.row);
+      if (cell != kInvalidCell && grid_.IsTraversable(cell.y, cell.x)) {
+        auto dc = wxClientDC(this);
+        grid_.ToggleStart(cell.y, cell.x);
+        if (oldStart != kInvalidCell && oldStart != cell) {
+          wxLogDebug("Redrawing old start position %d, %d", oldStart.x,
+                     oldStart.y);
+          wxLogDebug("New start position is %d, %d", cell.x, cell.y);
+          RenderCell(dc, oldStart);
+        }
+        RenderCell(dc, cell);
+      }
+    }
+    e.Skip();
+  });
+  Bind(wxEVT_RIGHT_DOWN, [this](wxMouseEvent& e) {
+    wxLogDebug("OnRightDown");
+    lastMousePosition_ = e.GetPosition();
+    if (!ctrlDown_) {
+      auto cell = GetCellFromMousePosition(e.GetPosition());
+      common::Position goalPosition = grid_.GetGoal();
+      wxPoint oldGoal = wxPoint(goalPosition.col, goalPosition.row);
+      if (cell != kInvalidCell && grid_.IsTraversable(cell.y, cell.x)) {
+        auto dc = wxClientDC(this);
+        grid_.ToggleGoal(cell.y, cell.x);
+        if (oldGoal != kInvalidCell && oldGoal != cell) {
+          wxLogDebug("Redrawing old goal position %d, %d", oldGoal.x,
+                     oldGoal.y);
+          wxLogDebug("New goal position is %d, %d", cell.x, cell.y);
+          RenderCell(dc, oldGoal);
+        }
+        RenderCell(dc, cell);
+      }
+    }
     e.Skip();
   });
   // Keyboard
@@ -115,14 +156,13 @@ void MazePanel::UpdateCursorAndInteractions(const wxPoint& mousePosition) {
 }
 void MazePanel::UpdateHoveredCell(const wxPoint& cell) {
   wxClientDC dc(this);
-  wxBufferedDC bufferedDC(&dc);
   const auto oldCell = lastHoveredCell_;
   lastHoveredCell_ = cell;
   if (oldCell != kInvalidCell) {
-    RenderCell(bufferedDC, oldCell);
+    RenderCell(dc, oldCell);
   }
   if (lastHoveredCell_ != kInvalidCell) {
-    RenderCell(bufferedDC, lastHoveredCell_);
+    RenderCell(dc, lastHoveredCell_);
   }
 }
 void MazePanel::OnMouseWheel(wxMouseEvent& event) {
@@ -151,10 +191,16 @@ void MazePanel::OnMouseWheel(wxMouseEvent& event) {
 void MazePanel::OnKeyDown(wxKeyEvent& event) {
   wxLogDebug("OnKeyDown");
   switch (event.GetKeyCode()) {
-    case WXK_CONTROL:
+    case WXK_CONTROL: {
       ctrlDown_ = true;
+      auto oldHighlight = lastHoveredCell_;
+      lastHoveredCell_ = kInvalidCell;
+      if (oldHighlight != kInvalidCell) {
+        auto dc = wxClientDC(this);
+        RenderCell(dc, oldHighlight);
+      }
       SetCursor(wxCURSOR_SIZING);
-      break;
+    } break;
     default:
       event.Skip();
   }
@@ -178,6 +224,13 @@ void MazePanel::Render(wxDC& dc) {
     return;
   }
   wxRect visiblePortion = GetVisiblePortion();
+  // this is not optimized at all
+  // could use chunking to draw uniform areas within 1 draw call(e.g. one large
+  // rectangle instead of many small ones, which would also cause use to change
+  // brushes less often), dirty rects to only redraw
+  // areas that actualy need redrawing,
+  int startCount = 0;
+  wxLogDebug("Rendering whole grid");
   for (int row = visiblePortion.GetTop(); row <= visiblePortion.GetBottom();
        row++) {
     for (int col = visiblePortion.GetLeft(); col <= visiblePortion.GetRight();
@@ -185,9 +238,11 @@ void MazePanel::Render(wxDC& dc) {
       int y = row * cellSize_ + panOffset_.y;
       int x = col * cellSize_ + panOffset_.x;
       int size = cellSize_ * zoomFactor_;
-
-      wxColour cellColour = GetCellColour(grid_.At(row, col));
-      dc.SetBrush(wxBrush(cellColour));
+      const auto type = grid_.At(row, col);
+      if (type == CellType::kStart && ++startCount > 1) {
+        wxLogError("!!! Drawing duplicit start cell at %d, %d", col, row);
+      }
+      dc.SetBrush(GetCellBrush(type));
       dc.SetPen(*wxTRANSPARENT_PEN);
       dc.DrawRectangle(x, y, size, size);
     }
@@ -197,11 +252,11 @@ void MazePanel::RenderCell(wxDC& dc, const wxPoint& cell) {
   int x = cell.x * cellSize_ + panOffset_.x;
   int y = cell.y * cellSize_ + panOffset_.y;
   int size = cellSize_ * zoomFactor_;
-  wxColour cellColour = GetCellColour(grid_.At(cell.y, cell.x));
   if (cell == lastHoveredCell_) {
-    cellColour = wxColour(192, 192, 192);
+    dc.SetBrush(wxBrush(wxColour(192, 192, 192)));
+  } else {
+    dc.SetBrush(GetCellBrush(grid_.At(cell.y, cell.x)));
   }
-  dc.SetBrush(wxBrush(cellColour));
   dc.SetPen(*wxTRANSPARENT_PEN);
   dc.DrawRectangle(x, y, size, size);
 }
@@ -250,28 +305,29 @@ wxPoint MazePanel::GetCellFromMousePosition(
       column >= grid_.GetCols()) {
     return {-1, -1};
   }
-  wxLogDebug("GetCellFromMousePosition (x, y): %d, %d", mousePosition.x,
-             mousePosition.y);
-  wxLogDebug("GetCellFromMousePosition (row, column): %d, %d", row, column);
+  // wxLogDebug("GetCellFromMousePosition (x, y): %d, %d", mousePosition.x,
+  //            mousePosition.y);
+  // wxLogDebug("GetCellFromMousePosition (row, column): %d, %d", row, column);
   return {column, row};
 }
-wxColour MazePanel::GetCellColour(const common::CellType& cellType) const {
-  // todo: Use a map instead of a switch
-  static const wxColour kEmptyCellColour = wxColour(255, 255, 255);
-  static const wxColour kWallCellColour = wxColour(0, 0, 0);
-  static const wxColour kStartCellColour = wxColour(255, 0, 0);
-  static const wxColour kGoalCellColour = wxColour(0, 255, 0);
+// Maps for regular brush + hover brush
+wxBrush MazePanel::GetCellBrush(const common::CellType& cellType) const {
+  static const wxBrush kEmptyCellBrush = wxBrush(wxColour(255, 255, 255));
+  static const wxBrush kWallCellBrush = wxBrush(wxColour(0, 0, 0));
+  static const wxBrush kStartCellBrush = wxBrush(wxColour(0, 255, 0));
+  static const wxBrush kGoalCellBrush = wxBrush(wxColour(255, 0, 0));
+
   switch (cellType) {
     case CellType::kEmpty:
-      return kEmptyCellColour;
+      return kEmptyCellBrush;
     case CellType::kWall:
-      return kWallCellColour;
+      return kWallCellBrush;
     case CellType::kStart:
-      return kStartCellColour;
+      return kStartCellBrush;
     case CellType::kGoal:
-      return kGoalCellColour;
+      return kGoalCellBrush;
     default:
-      return kEmptyCellColour;
+      return kEmptyCellBrush;
   }
 }
 }  // namespace astar::ui
