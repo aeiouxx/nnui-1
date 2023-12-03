@@ -2,6 +2,10 @@
 
 #include <wx/dcbuffer.h>
 
+#include <thread>
+
+#include "maze-update.h"
+#include "wx/event.h"
 #include "wx/gdicmn.h"
 #include "wx/log.h"
 
@@ -85,9 +89,9 @@ void MazePanel::BindEvents() {
   // Keyboard
   Bind(wxEVT_KEY_DOWN, &MazePanel::OnKeyDown, this);
   Bind(wxEVT_KEY_UP, &MazePanel::OnKeyUp, this);
-
   // do nothing to prevent flickering
   Bind(wxEVT_ERASE_BACKGROUND, [](wxEraseEvent&) {});
+  Bind(myEVT_MAZE_UPDATE, &MazePanel::OnMazeUpdate, this);
 }
 void MazePanel::SetGrid(const Grid& grid) {
   grid_ = grid;
@@ -239,9 +243,13 @@ void MazePanel::Render(wxDC& dc) {
       int x = col * cellSize_ + panOffset_.x;
       int size = cellSize_ * zoomFactor_;
       const auto type = grid_.At(row, col);
+#if ASTAR_DEBUG
+      // got confused because I used a bufferedDC in RenderCell which redrew the
+      // original start cell after It had already drawn the new one
       if (type == CellType::kStart && ++startCount > 1) {
         wxLogError("!!! Drawing duplicit start cell at %d, %d", col, row);
       }
+#endif
       dc.SetBrush(GetCellBrush(type));
       dc.SetPen(*wxTRANSPARENT_PEN);
       dc.DrawRectangle(x, y, size, size);
@@ -259,6 +267,21 @@ void MazePanel::RenderCell(wxDC& dc, const wxPoint& cell) {
   }
   dc.SetPen(*wxTRANSPARENT_PEN);
   dc.DrawRectangle(x, y, size, size);
+}
+// should probably set up a debouncer / throttling for this too
+void MazePanel::OnMazeUpdate(MazeUpdateEvent& event) {
+  static int evtCounter = 0;
+  wxLogDebug("OnMazeUpdate %d", evtCounter++);
+  auto dc = wxClientDC(this);
+  // once again, giga inefficient
+  for (const auto update : event.GetUpdates()) {
+    const auto pos = update.GetPosition();
+    const auto type = update.GetCellType();
+    wxLogDebug("Drawing update at %d, %d, cellType = %d", pos.col, pos.row,
+               type);
+    grid_.At(pos.row, pos.col) = type;
+    RenderCell(dc, wxPoint(pos.col, pos.row));
+  }
 }
 // < Rendering
 // Utilities >
@@ -310,12 +333,15 @@ wxPoint MazePanel::GetCellFromMousePosition(
   // wxLogDebug("GetCellFromMousePosition (row, column): %d, %d", row, column);
   return {column, row};
 }
-// Maps for regular brush + hover brush
+
+// TODO: indexed color palette for
+// normal cells and hovered cells...
 wxBrush MazePanel::GetCellBrush(const common::CellType& cellType) const {
   static const wxBrush kEmptyCellBrush = wxBrush(wxColour(255, 255, 255));
   static const wxBrush kWallCellBrush = wxBrush(wxColour(0, 0, 0));
   static const wxBrush kStartCellBrush = wxBrush(wxColour(0, 255, 0));
   static const wxBrush kGoalCellBrush = wxBrush(wxColour(255, 0, 0));
+  static const wxBrush kVisitedCellBrush = wxBrush(wxColour(0, 0, 255));
 
   switch (cellType) {
     case CellType::kEmpty:
@@ -326,6 +352,8 @@ wxBrush MazePanel::GetCellBrush(const common::CellType& cellType) const {
       return kStartCellBrush;
     case CellType::kGoal:
       return kGoalCellBrush;
+    case CellType::kVisited:
+      return kVisitedCellBrush;
     default:
       return kEmptyCellBrush;
   }

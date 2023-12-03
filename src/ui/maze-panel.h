@@ -8,6 +8,7 @@
 #include <thread>
 
 #include "../common/grid.h"
+#include "maze-update.h"
 namespace astar::ui {
 class MazePanel : public wxPanel {
  private:
@@ -40,6 +41,7 @@ class MazePanel : public wxPanel {
   // Rendering
   void Render(wxDC& dc);
   void RenderCell(wxDC& dc, const wxPoint& cell);
+  void OnMazeUpdate(MazeUpdateEvent& event);
   // Utilities
   wxRect GetVisiblePortion() const;
   void UpdateSizeInformation();

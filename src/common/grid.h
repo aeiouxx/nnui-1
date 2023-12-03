@@ -4,15 +4,6 @@
 
 #include "definitions.h"
 namespace astar::common {
-struct Position {
-  int row;
-  int col;
-
-  Position(int row = -1, int col = -1);
-  bool IsValid() const;
-  bool operator==(const Position& other) const;
-  bool operator!=(const Position& other) const;
-};
 class Grid {
  public:
   Grid(int rows, int cols);

@@ -20,5 +20,14 @@ enum ActionCost {
   kTurn90 = 2,
   kTurn180 = 3
 };
+struct Position {
+  int row;
+  int col;
+
+  Position(int row = -1, int col = -1);
+  bool IsValid() const;
+  bool operator==(const Position& other) const;
+  bool operator!=(const Position& other) const;
+};
 }  // namespace astar::common
 #endif
