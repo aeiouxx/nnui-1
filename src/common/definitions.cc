@@ -14,6 +14,13 @@ bool Position::operator!=(const Position &other) const {
   return !(*this == other);
 }
 
+bool Position::operator<(const Position &other) const {
+  if (row == other.row) {
+    return col < other.col;
+  }
+  return row < other.row;
+}
+
 int GetTurnCost(const Orientation &current, const Orientation &goal) {
   auto magic = current ^ goal;
   if (!magic) {

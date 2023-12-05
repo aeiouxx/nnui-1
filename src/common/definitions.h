@@ -30,6 +30,8 @@ struct Position {
   bool IsValid() const;
   bool operator==(const Position &other) const;
   bool operator!=(const Position &other) const;
+
+  bool operator<(const Position &other) const;
 };
 int GetTurnCost(const Orientation &current, const Orientation &goal);
 }  // namespace astar::common
