@@ -63,10 +63,10 @@ set(SOURCES src/main.cc
             src/astar.cc
             src/common/grid.cc
             src/common/definitions.cc
+            src/pathfinding/algorithm.cc
             src/ui/my-frame.cc
             src/ui/maze-panel.cc
-            src/ui/maze-update.cc
-            src/pathfinding/state.cc)
+            src/ui/maze-update.cc)
 add_executable(astar ${EXECUTABLE_FLAGS} ${SOURCES})
 target_include_directories(astar PRIVATE ${wxWidgets_SOURCE_DIR}/include)
 target_link_libraries(astar PRIVATE wx::base wx::core)

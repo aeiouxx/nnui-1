@@ -1,6 +1,6 @@
 BasedOnStyle: Google
 AllowShortEnumsOnASingleLine: false
-# i hate that so much
+DerivePointerAlignment: false
+PointerAlignment: Right
 AllowShortIfStatementsOnASingleLine: Never
-# And i hate this even more
 AllowShortFunctionsOnASingleLine: None

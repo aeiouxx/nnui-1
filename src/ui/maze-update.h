@@ -13,8 +13,6 @@ struct MazeUpdate {
   Position position;
   CellType cell_type;
   MazeUpdate(Position position, CellType cell_type);
-
-  // todo: in cc file
   Position GetPosition() const {
     return position;
   }
@@ -22,19 +20,17 @@ struct MazeUpdate {
     return cell_type;
   }
 };
-// needs forward declaration for macro.
 class MazeUpdateEvent;
 wxDECLARE_EVENT(myEVT_MAZE_UPDATE, MazeUpdateEvent);
 class MazeUpdateEvent : public wxCommandEvent {
  public:
   MazeUpdateEvent(wxEventType eventType = myEVT_MAZE_UPDATE, int id = 0);
-  MazeUpdateEvent(const MazeUpdateEvent& event);
-  void SetUpdates(const std::vector<MazeUpdate>& updates);
+  MazeUpdateEvent(const MazeUpdateEvent &event);
+  void SetUpdates(const std::vector<MazeUpdate> &updates);
   std::vector<MazeUpdate> GetUpdates() const;
 
-  // Kind of stupid but clone takes ownership of the
-  // MazeUpdates, definitely ugly.
-  wxEvent* Clone() const override;
+  // should not be taking ownership of the vector.
+  wxEvent *Clone() const override;
 
  private:
   std::vector<MazeUpdate> updates_;

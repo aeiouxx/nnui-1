@@ -12,8 +12,8 @@
 namespace astar::ui {
 using astar::common::CellType;
 using astar::common::Grid;
-const wxPoint MazePanel::kInvalidCell{-1, -1};
-MazePanel::MazePanel(wxWindow* parent, wxColour backgroundColour)
+const wxPoint MazeCanvas::kInvalidCell{-1, -1};
+MazeCanvas::MazeCanvas(wxWindow *parent, wxColour backgroundColour)
     : wxPanel(parent),
       grid_(0, 0),
       resizeDebouncer_(this),
@@ -26,25 +26,26 @@ MazePanel::MazePanel(wxWindow* parent, wxColour backgroundColour)
   SetBackgroundColour(backgroundColour);
   BindEvents();
 }
-MazePanel::~MazePanel() {
+MazeCanvas::~MazeCanvas() {
   pathfindingThreadShouldStop_ = true;
   if (pathfindingThread_.joinable()) {
     pathfindingThread_.join();
   }
 }
-void MazePanel::BindEvents() {
-  Bind(wxEVT_PAINT, &MazePanel::OnPaint, this);
-  Bind(wxEVT_SIZE, &MazePanel::OnResize, this);
-  Bind(wxEVT_TIMER, &MazePanel::OnResizeTimer, this, resizeDebouncer_.GetId());
+void MazeCanvas::BindEvents() {
+  Bind(wxEVT_PAINT, &MazeCanvas::OnPaint, this);
+  Bind(wxEVT_SIZE, &MazeCanvas::OnResize, this);
+  Bind(wxEVT_TIMER, &MazeCanvas::OnResizeTimer, this, resizeDebouncer_.GetId());
   // Mouse
-  Bind(wxEVT_MOTION, &MazePanel::OnMouseMove, this);
-  Bind(wxEVT_MOUSEWHEEL, &MazePanel::OnMouseWheel, this);
-  Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& e) {
+  Bind(wxEVT_MOTION, &MazeCanvas::OnMouseMove, this);
+  Bind(wxEVT_MOUSEWHEEL, &MazeCanvas::OnMouseWheel, this);
+  Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &e) {
     wxLogDebug("OnLeftDown");
     lastMousePosition_ = e.GetPosition();
     e.Skip();
   });
-  Bind(wxEVT_LEFT_UP, [this](wxMouseEvent& e) {
+  Bind(wxEVT_LEFT_UP, [this](wxMouseEvent &e) {
+    // Can also toggle direction of start if we click on it.
     wxLogDebug("OnLeftUp");
     lastMousePosition_ = wxDefaultPosition;
     if (!ctrlDown_) {
@@ -65,7 +66,7 @@ void MazePanel::BindEvents() {
     }
     e.Skip();
   });
-  Bind(wxEVT_RIGHT_DOWN, [this](wxMouseEvent& e) {
+  Bind(wxEVT_RIGHT_DOWN, [this](wxMouseEvent &e) {
     wxLogDebug("OnRightDown");
     lastMousePosition_ = e.GetPosition();
     if (!ctrlDown_) {
@@ -87,45 +88,45 @@ void MazePanel::BindEvents() {
     e.Skip();
   });
   // Keyboard
-  Bind(wxEVT_KEY_DOWN, &MazePanel::OnKeyDown, this);
-  Bind(wxEVT_KEY_UP, &MazePanel::OnKeyUp, this);
+  Bind(wxEVT_KEY_DOWN, &MazeCanvas::OnKeyDown, this);
+  Bind(wxEVT_KEY_UP, &MazeCanvas::OnKeyUp, this);
   // do nothing to prevent flickering
-  Bind(wxEVT_ERASE_BACKGROUND, [](wxEraseEvent&) {});
-  Bind(myEVT_MAZE_UPDATE, &MazePanel::OnMazeUpdate, this);
+  Bind(wxEVT_ERASE_BACKGROUND, [](wxEraseEvent &) {});
+  Bind(myEVT_MAZE_UPDATE, &MazeCanvas::OnMazeUpdate, this);
 }
-void MazePanel::SetGrid(const Grid& grid) {
+void MazeCanvas::SetGrid(const Grid &grid) {
   grid_ = grid;
   panOffset_ = wxDefaultPosition;
   zoomFactor_ = 1.0f;
   UpdateSizeInformation();
 }
-void MazePanel::SetGrid(Grid&& grid) noexcept {
+void MazeCanvas::SetGrid(Grid &&grid) noexcept {
   grid_ = std::move(grid);
   UpdateSizeInformation();
 }
-const Grid& MazePanel::GetGrid() const {
+const Grid &MazeCanvas::GetGrid() const {
   return grid_;
 }
-Grid& MazePanel::GetGrid() {
+Grid &MazeCanvas::GetGrid() {
   return grid_;
 }
 // Event handling >
-void MazePanel::OnPaint(wxPaintEvent& event) {
+void MazeCanvas::OnPaint(wxPaintEvent &event) {
   wxBufferedPaintDC dc(this);
   Render(dc);
 }
-void MazePanel::OnResize(wxSizeEvent& event) {
+void MazeCanvas::OnResize(wxSizeEvent &event) {
   shouldRenderGrid_ = false;
   resizeDebouncer_.Start(500, true);
 }
-void MazePanel::OnResizeTimer(wxTimerEvent&) {
+void MazeCanvas::OnResizeTimer(wxTimerEvent &) {
   wxLogDebug("OnResizeTimer");
   shouldRenderGrid_ = true;
   UpdateSizeInformation();
   Refresh();
   Update();
 }
-void MazePanel::OnMouseMove(wxMouseEvent& event) {
+void MazeCanvas::OnMouseMove(wxMouseEvent &event) {
   wxPoint mousePosition = event.GetPosition();
   if (ctrlDown_) {
     if (event.LeftIsDown()) {
@@ -136,7 +137,7 @@ void MazePanel::OnMouseMove(wxMouseEvent& event) {
   }
   event.Skip();
 }
-void MazePanel::HandleDrag(const wxPoint& mousePosition) {
+void MazeCanvas::HandleDrag(const wxPoint &mousePosition) {
   if (lastMousePosition_ != wxDefaultPosition) {
     const auto delta = mousePosition - lastMousePosition_;
     panOffset_ += delta;
@@ -144,7 +145,7 @@ void MazePanel::HandleDrag(const wxPoint& mousePosition) {
   }
   lastMousePosition_ = mousePosition;
 }
-void MazePanel::UpdateCursorAndInteractions(const wxPoint& mousePosition) {
+void MazeCanvas::UpdateCursorAndInteractions(const wxPoint &mousePosition) {
   auto cell = GetCellFromMousePosition(mousePosition);
   if (cell != kInvalidCell && grid_.IsTraversable(cell.y, cell.x)) {
     SetCursor(wxCURSOR_ARROW);
@@ -158,7 +159,7 @@ void MazePanel::UpdateCursorAndInteractions(const wxPoint& mousePosition) {
     }
   }
 }
-void MazePanel::UpdateHoveredCell(const wxPoint& cell) {
+void MazeCanvas::UpdateHoveredCell(const wxPoint &cell) {
   wxClientDC dc(this);
   const auto oldCell = lastHoveredCell_;
   lastHoveredCell_ = cell;
@@ -169,7 +170,7 @@ void MazePanel::UpdateHoveredCell(const wxPoint& cell) {
     RenderCell(dc, lastHoveredCell_);
   }
 }
-void MazePanel::OnMouseWheel(wxMouseEvent& event) {
+void MazeCanvas::OnMouseWheel(wxMouseEvent &event) {
   static constexpr int pixelZoomIncrement = 4;
   wxLogDebug("OnMouseWheel");
   if (!ctrlDown_ || grid_.IsEmpty()) {
@@ -192,7 +193,7 @@ void MazePanel::OnMouseWheel(wxMouseEvent& event) {
   Refresh();
 }
 
-void MazePanel::OnKeyDown(wxKeyEvent& event) {
+void MazeCanvas::OnKeyDown(wxKeyEvent &event) {
   wxLogDebug("OnKeyDown");
   switch (event.GetKeyCode()) {
     case WXK_CONTROL: {
@@ -209,7 +210,7 @@ void MazePanel::OnKeyDown(wxKeyEvent& event) {
       event.Skip();
   }
 }
-void MazePanel::OnKeyUp(wxKeyEvent& event) {
+void MazeCanvas::OnKeyUp(wxKeyEvent &event) {
   wxLogDebug("OnKeyUp");
   switch (event.GetKeyCode()) {
     case WXK_CONTROL: {
@@ -222,7 +223,10 @@ void MazePanel::OnKeyUp(wxKeyEvent& event) {
 
 // < Event handling
 // Rendering >
-void MazePanel::Render(wxDC& dc) {
+// TODO:
+// Maybe try to use blitting, we will still need to redraw the entire canvas
+// on zooming / panning.
+void MazeCanvas::Render(wxDC &dc) {
   dc.Clear();
   if (!shouldRenderGrid_) {
     return;
@@ -256,7 +260,7 @@ void MazePanel::Render(wxDC& dc) {
     }
   }
 }
-void MazePanel::RenderCell(wxDC& dc, const wxPoint& cell) {
+void MazeCanvas::RenderCell(wxDC &dc, const wxPoint &cell) {
   int x = cell.x * cellSize_ + panOffset_.x;
   int y = cell.y * cellSize_ + panOffset_.y;
   int size = cellSize_ * zoomFactor_;
@@ -269,7 +273,7 @@ void MazePanel::RenderCell(wxDC& dc, const wxPoint& cell) {
   dc.DrawRectangle(x, y, size, size);
 }
 // should probably set up a debouncer / throttling for this too
-void MazePanel::OnMazeUpdate(MazeUpdateEvent& event) {
+void MazeCanvas::OnMazeUpdate(MazeUpdateEvent &event) {
   static int evtCounter = 0;
   wxLogDebug("OnMazeUpdate %d", evtCounter++);
   auto dc = wxClientDC(this);
@@ -285,7 +289,7 @@ void MazePanel::OnMazeUpdate(MazeUpdateEvent& event) {
 }
 // < Rendering
 // Utilities >
-wxRect MazePanel::GetVisiblePortion() const {
+wxRect MazeCanvas::GetVisiblePortion() const {
   wxSize panelSize = GetClientSize();
   int visibleLeft = std::max(0, -panOffset_.x / cellSize_);
   int visibleTop = std::max(0, -panOffset_.y / cellSize_);
@@ -297,7 +301,7 @@ wxRect MazePanel::GetVisiblePortion() const {
   return {visibleLeft, visibleTop, visibleRight - visibleLeft,
           visibleBottom - visibleTop};
 }
-void MazePanel::UpdateSizeInformation() {
+void MazeCanvas::UpdateSizeInformation() {
   if (grid_.IsEmpty()) {
     return;
   }
@@ -308,7 +312,7 @@ void MazePanel::UpdateSizeInformation() {
                            static_cast<double>(grid_.GetRows());
   int maximumCellWidth = size.GetWidth() / grid_.GetCols();
   int maximumCellHeight = size.GetHeight() / grid_.GetRows();
-  cellSize_ = std::max(MazePanel::kMinimumCellSize,
+  cellSize_ = std::max(MazeCanvas::kMinimumCellSize,
                        std::min(maximumCellWidth, maximumCellHeight));
 
   // check if we can't fit the entire grid on the screen
@@ -320,8 +324,8 @@ void MazePanel::UpdateSizeInformation() {
         std::max(1, std::min(cellSize_, size.GetWidth() / grid_.GetCols()));
   }
 }
-wxPoint MazePanel::GetCellFromMousePosition(
-    const wxPoint& mousePosition) const {
+wxPoint MazeCanvas::GetCellFromMousePosition(
+    const wxPoint &mousePosition) const {
   int column = (mousePosition.x - panOffset_.x) / cellSize_;
   int row = (mousePosition.y - panOffset_.y) / cellSize_;
   if (row < 0 || row >= grid_.GetRows() || column < 0 ||
@@ -336,7 +340,7 @@ wxPoint MazePanel::GetCellFromMousePosition(
 
 // TODO: indexed color palette for
 // normal cells and hovered cells...
-wxBrush MazePanel::GetCellBrush(const common::CellType& cellType) const {
+wxBrush MazeCanvas::GetCellBrush(const common::CellType &cellType) const {
   static const wxBrush kEmptyCellBrush = wxBrush(wxColour(255, 255, 255));
   static const wxBrush kWallCellBrush = wxBrush(wxColour(0, 0, 0));
   static const wxBrush kStartCellBrush = wxBrush(wxColour(0, 255, 0));

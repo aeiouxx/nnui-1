@@ -34,17 +34,17 @@ MyFrame::~MyFrame() {
   Destroy();
 }
 void MyFrame::PreparePanel() {
-  panel_ = new MazePanel(this, kBackgroundColour);
-  wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+  panel_ = new MazeCanvas(this, kBackgroundColour);
+  wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
   sizer->Add(panel_, 1, wxEXPAND);
   SetSizer(sizer);
   Layout();
 }
 void MyFrame::PrepareMenu() {
-  wxMenu* menuFile = new wxMenu;
+  wxMenu *menuFile = new wxMenu;
   menuFile->Append(wxID_OPEN, "&Open...\tCtrl-O", "Open a bitmap file");
   menuFile->Append(wxID_EXIT);
-  wxMenuBar* menuBar = new wxMenuBar;
+  wxMenuBar *menuBar = new wxMenuBar;
   menuBar->Append(menuFile, "&File");
   SetMenuBar(menuBar);
 }
@@ -58,7 +58,7 @@ void MyFrame::BindEvents() {
 void MyFrame::PrepareForScreen() {
   wxSize screenSize = wxGetDisplaySize();
   wxSize bestSize = kResolutions[0];
-  for (auto& size : kResolutions) {
+  for (auto &size : kResolutions) {
     if (screenSize.x >= size.x && screenSize.y >= size.y) {
       bestSize = size;
     }
@@ -66,10 +66,10 @@ void MyFrame::PrepareForScreen() {
   SetSize(bestSize);
   Centre();
 }
-void MyFrame::OnExit(wxCommandEvent& event) {
+void MyFrame::OnExit(wxCommandEvent &event) {
   Close(true);
 }
-void MyFrame::OnOpenFile(wxCommandEvent& event) {
+void MyFrame::OnOpenFile(wxCommandEvent &event) {
   wxFileDialog openFileDialog(this, _("Open Bitmap file"), "", "",
                               "Bitmap files (*.bmp)|*.bmp",
                               wxFD_OPEN | wxFD_FILE_MUST_EXIST);
@@ -78,10 +78,10 @@ void MyFrame::OnOpenFile(wxCommandEvent& event) {
   wxString path = openFileDialog.GetPath();
   ProcessBitmap(path);
 }
-void MyFrame::OnResize(wxSizeEvent& event) {
+void MyFrame::OnResize(wxSizeEvent &event) {
   event.Skip();
 }
-void MyFrame::ProcessBitmap(const wxString& path) {
+void MyFrame::ProcessBitmap(const wxString &path) {
   wxProgressDialog progressDialog(
       "Processing bitmap", "Please wait while the bitmap is being loaded...",
       100, this, wxPD_CAN_ABORT | wxPD_AUTO_HIDE | wxPD_ELAPSED_TIME);

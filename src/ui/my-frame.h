@@ -27,7 +27,7 @@ class MyFrame : public wxFrame {
   void PrepareForScreen();
 
  private:
-  MazePanel* panel_;
+  MazeCanvas* panel_;
 #ifdef ASTAR_DEBUG
   wxLog* logger_;
 #endif

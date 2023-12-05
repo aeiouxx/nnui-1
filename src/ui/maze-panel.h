@@ -10,49 +10,45 @@
 #include "../common/grid.h"
 #include "maze-update.h"
 namespace astar::ui {
-class MazePanel : public wxPanel {
+class MazeCanvas : public wxPanel {
  private:
   static constexpr int kMinimumCellSize = 36;
   static const wxPoint kInvalidCell;
 
  public:
-  MazePanel(wxWindow* parent, wxColour backgroundColor);
-  ~MazePanel();
-  void SetGrid(const astar::common::Grid& grid);
-  void SetGrid(astar::common::Grid&& grid) noexcept;
-  const common::Grid& GetGrid() const;
-  common::Grid& GetGrid();
+  MazeCanvas(wxWindow *parent, wxColour backgroundColor);
+  ~MazeCanvas();
+  void SetGrid(const astar::common::Grid &grid);
+  void SetGrid(astar::common::Grid &&grid) noexcept;
+  const common::Grid &GetGrid() const;
+  common::Grid &GetGrid();
 
- protected:
+ private:
   void BindEvents();
-  void OnPaint(wxPaintEvent& event);
-  void OnResize(wxSizeEvent& event);
-  void OnResizeTimer(wxTimerEvent& event);
-
-  // Mouse
-  void OnMouseMove(wxMouseEvent& event);
-  void OnMouseWheel(wxMouseEvent& event);
-  void OnMouseClick(wxMouseEvent& event);
-  void HandleDrag(const wxPoint& mousePosition);
-  void UpdateCursorAndInteractions(const wxPoint& mousePosition);
-  // Keyboard
-  void OnKeyDown(wxKeyEvent& event);
-  void OnKeyUp(wxKeyEvent& event);
-  // Rendering
-  void Render(wxDC& dc);
-  void RenderCell(wxDC& dc, const wxPoint& cell);
-  void OnMazeUpdate(MazeUpdateEvent& event);
-  // Utilities
+  void OnPaint(wxPaintEvent &event);
+  void OnResize(wxSizeEvent &event);
+  void OnResizeTimer(wxTimerEvent &event);
+  void OnMouseMove(wxMouseEvent &event);
+  void OnMouseWheel(wxMouseEvent &event);
+  void OnMouseClick(wxMouseEvent &event);
+  void HandleDrag(const wxPoint &mousePosition);
+  void UpdateCursorAndInteractions(const wxPoint &mousePosition);
+  void OnKeyDown(wxKeyEvent &event);
+  void OnKeyUp(wxKeyEvent &event);
+  void OnMazeUpdate(MazeUpdateEvent &event);
+  void Render(wxDC &dc);
+  void RenderCell(wxDC &dc, const wxPoint &cell);
   wxRect GetVisiblePortion() const;
   void UpdateSizeInformation();
-  wxBrush GetCellBrush(const common::CellType& cellType) const;
-  wxPoint GetCellFromMousePosition(const wxPoint& mousePosition) const;
-  void UpdateHoveredCell(const wxPoint& cell);
+  wxBrush GetCellBrush(const common::CellType &cellType) const;
+  wxPoint GetCellFromMousePosition(const wxPoint &mousePosition) const;
+  void UpdateHoveredCell(const wxPoint &cell);
+
+  void MaybeRunPathfinding();
 
  private:
   astar::common::Grid grid_;
   wxTimer resizeDebouncer_;
-
   // RenderInfo
   wxPoint panOffset_;
   wxPoint lastMousePosition_;
@@ -61,7 +57,6 @@ class MazePanel : public wxPanel {
   bool ctrlDown_;
   bool shouldRenderGrid_;
   int cellSize_;
-
   // Pathfinding
   std::thread pathfindingThread_;
   std::atomic_bool pathfindingThreadRunning_;
