@@ -100,12 +100,20 @@ void MazeCanvas::BindEvents() {
   Bind(myEVT_MAZE_UPDATE, &MazeCanvas::OnMazeUpdate, this);
 }
 void MazeCanvas::SetGrid(const Grid &grid) {
+  pathfindingAlgorithm_.RequestCancellation();
+  if (pathfindingThread_.joinable()) {
+    pathfindingThread_.join();
+  }
   grid_ = grid;
   panOffset_ = wxDefaultPosition;
   zoomFactor_ = 1.0f;
   UpdateSizeInformation();
 }
-void MazeCanvas::SetGrid(Grid &&grid) noexcept {
+void MazeCanvas::SetGrid(Grid &&grid) {
+  pathfindingAlgorithm_.RequestCancellation();
+  if (pathfindingThread_.joinable()) {
+    pathfindingThread_.join();
+  }
   grid_ = std::move(grid);
   UpdateSizeInformation();
 }

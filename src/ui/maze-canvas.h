@@ -21,7 +21,7 @@ class MazeCanvas : public wxPanel {
   MazeCanvas(wxWindow *parent, wxColour background_color);
   ~MazeCanvas();
   void SetGrid(const astar::common::Grid &grid);
-  void SetGrid(astar::common::Grid &&grid) noexcept;
+  void SetGrid(astar::common::Grid &&grid);
   const common::Grid &GetGrid() const;
   common::Grid &GetGrid();
 
