@@ -35,6 +35,5 @@ class MazeUpdateEvent : public wxCommandEvent {
  private:
   std::vector<MazeUpdate> updates_;
 };
-// typedef void (wxEvtHandler::*MazeUpdateEventFunction)(MazeUpdateEvent&);
 };  // namespace astar::ui
 #endif
