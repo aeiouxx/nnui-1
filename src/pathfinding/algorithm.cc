@@ -55,14 +55,14 @@ void AstarAlgorithm::Run(const Grid &grid, const Position &start,
   for (; !openSet.empty() && !cancellation_requested; openSet.pop()) {
     auto *current = openSet.top();
     updatesForUi.push_back({current->position, CellType::kVisited});
-    wxLogDebug("Current(f:%d) %d,%d", current->f_cost, current->position.row,
-               current->position.col);
-    wxLogDebug("Current_parent(f:%d) %d,%d", current->f_cost,
-               current->position.row, current->position.col);
     if (current->position == goal) {
       wxLogDebug("Found goal in %d checks", checks);
+      if (updatesForUi.size() > 0) {
+        updateEvent.SetUpdates(updatesForUi);
+        wxQueueEvent(update_target, updateEvent.Clone());
+        updatesForUi.clear();
+      }
       EmitPath(current, update_target);
-      updatesForUi.clear();
       break;
     }
     for (const auto &orientation : kOrientations) {

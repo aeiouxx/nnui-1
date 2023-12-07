@@ -7,25 +7,41 @@ Grid::Grid(int rows, int cols)
     : rows_(rows), cols_(cols), grid_(rows * cols, CellType::kEmpty) {
 }
 Grid::Grid(const Grid &other)
-    : rows_(other.rows_), cols_(other.cols_), grid_(other.grid_) {
+    : rows_(other.rows_),
+      cols_(other.cols_),
+      grid_(other.grid_),
+      start_(other.start_),
+      goal_(other.goal_) {
 }
 Grid::Grid(Grid &&other) noexcept
-    : rows_(other.rows_), cols_(other.cols_), grid_(std::move(other.grid_)) {
+    : rows_(other.rows_),
+      cols_(other.cols_),
+      grid_(std::move(other.grid_)),
+      start_(other.start_),
+      goal_(other.goal_) {
   other.rows_ = 0;
   other.cols_ = 0;
+  other.goal_ = 0;
+  other.start_ = 0;
 }
 Grid &Grid::operator=(const Grid &other) {
   rows_ = other.rows_;
   cols_ = other.cols_;
   grid_ = other.grid_;
+  goal_ = other.goal_;
+  start_ = other.start_;
   return *this;
 }
 Grid &Grid::operator=(Grid &&other) noexcept {
   rows_ = other.rows_;
   cols_ = other.cols_;
   grid_ = std::move(other.grid_);
+  goal_ = other.goal_;
+  start_ = other.start_;
   other.rows_ = 0;
   other.cols_ = 0;
+  other.goal_ = Position::kInvalid;
+  other.start_ = Position::kInvalid;
   return *this;
 }
 const int Grid::GetRows() const {

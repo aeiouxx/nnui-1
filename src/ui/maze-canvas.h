@@ -16,6 +16,7 @@ class MazeCanvas : public wxPanel {
   static constexpr int kMinimumCellSize = 36;
   static const wxPoint kInvalidCell;
   static constexpr int kResizeDebounceTime = 250;
+  static constexpr int kRedrawTimer = 150;
 
  public:
   MazeCanvas(wxWindow *parent, wxColour background_color);
@@ -32,7 +33,6 @@ class MazeCanvas : public wxPanel {
   void OnResizeTimer(wxTimerEvent &event);
   void OnMouseMove(wxMouseEvent &event);
   void OnMouseWheel(wxMouseEvent &event);
-  void OnMouseClick(wxMouseEvent &event);
   void HandleDrag(const wxPoint &mouse_position);
   void UpdateCursorAndInteractions(const wxPoint &mouse_position);
   void OnKeyDown(wxKeyEvent &event);
@@ -52,6 +52,8 @@ class MazeCanvas : public wxPanel {
  private:
   astar::common::Grid grid_;
   wxTimer resizeDebouncer_;
+  wxTimer redrawTimer_;
+  std::atomic_bool isRedrawing_;
   // RenderInfo
   wxPoint panOffset_;
   wxPoint lastMousePosition_;

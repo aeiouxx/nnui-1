@@ -23,7 +23,7 @@ MazeCanvas::MazeCanvas(wxWindow *parent, wxColour backgroundColour)
       lastHoveredCell_(kInvalidCell),
       lastMousePosition_(wxDefaultPosition),
       cellSize_(kMinimumCellSize),
-      pathfindingAlgorithm_() {
+      redrawTimer_(this) {
   SetBackgroundColour(backgroundColour);
   BindEvents();
 }
@@ -37,6 +37,17 @@ void MazeCanvas::BindEvents() {
   Bind(wxEVT_PAINT, &MazeCanvas::OnPaint, this);
   Bind(wxEVT_SIZE, &MazeCanvas::OnResize, this);
   Bind(wxEVT_TIMER, &MazeCanvas::OnResizeTimer, this, resizeDebouncer_.GetId());
+  Bind(
+      wxEVT_TIMER,
+      [this](wxTimerEvent &) {
+        if (isRedrawing_) {
+          wxLogDebug("Already redrawing...");
+          return;
+        }
+        Refresh();
+        Update();
+      },
+      redrawTimer_.GetId());
   // Mouse
   Bind(wxEVT_MOTION, &MazeCanvas::OnMouseMove, this);
   Bind(wxEVT_MOUSEWHEEL, &MazeCanvas::OnMouseWheel, this);
@@ -251,6 +262,9 @@ void MazeCanvas::Render(wxDC &dc) {
   if (!shouldRenderGrid_) {
     return;
   }
+  if (isRedrawing_.exchange(true)) {
+    wxLogDebug("Already redrawing...");
+  }
   wxRect visiblePortion = GetVisiblePortion();
   int startCount = 0;
   wxLogDebug("Rendering whole grid");
@@ -274,6 +288,8 @@ void MazeCanvas::Render(wxDC &dc) {
       dc.DrawRectangle(x, y, size, size);
     }
   }
+
+  isRedrawing_ = false;
 }
 void MazeCanvas::RenderCell(wxDC &dc, const wxPoint &cell) {
   int x = cell.x * cellSize_ + panOffset_.x;
@@ -288,18 +304,24 @@ void MazeCanvas::OnMazeUpdate(MazeUpdateEvent &event) {
   static int evtCounter = 0;
   wxLogDebug("OnMazeUpdate %d", evtCounter++);
   auto dc = wxClientDC(this);
-  // once again, giga inefficient
   for (const auto update : event.GetUpdates()) {
     const auto pos = update.GetPosition();
     const auto type = update.GetCellType();
-    wxLogDebug("Updating grid at %d, %d, cellType = %d", pos.col, pos.row,
-               type);
+    // wxLogDebug("Updating grid at %d, %d, cellType = %d", pos.col, pos.row,
+    //            type);
     auto oldType = grid_.At(pos.row, pos.col);
     if (oldType == CellType::kGoal || oldType == CellType::kStart) {
       continue;
     } else {
       grid_.At(pos.row, pos.col) = type;
     }
+  }
+  //// If we have many update events coming in, start a timer to redraw, once
+  /// they / stop comming in so frequently as to reset the timer we can redraw
+  // redrawTimer_.Start(kRedrawTimer, true);
+  if (isRedrawing_) {
+    wxLogDebug("Already redrawing...");
+    return;
   }
   Refresh();
   Update();
@@ -430,12 +452,14 @@ void MazeCanvas::MaybeRunPathfinding() {
   grid_.ClearPathInfo();
   // potential race condition here also...
   auto totalSize = grid_.GetRows() * grid_.GetCols();
-  int update_per_percent = std::max(16, totalSize / 100);
+  int update_frequency = std::max(4, totalSize / 10);
   // the larger the grid is the less frequent we want to update the UI
   // otherwise it will be too slow, and I would need to implement event
   // throttling
-  pathfindingAlgorithm_.checks_per_update = update_per_percent;
+  pathfindingAlgorithm_.checks_per_update = update_frequency;
   wxLogDebug("Starting pathfinding thread...");
+  wxLogDebug("Grid start: %d, %d", grid_.GetStart().col, grid_.GetStart().row);
+  wxLogDebug("Grid goal: %d, %d", grid_.GetGoal().col, grid_.GetGoal().row);
   pathfindingAlgorithm_.cancellation_requested = false;
   pathfindingThread_ = std::thread([this]() {
     pathfindingAlgorithm_.Run(grid_, grid_.GetStart(),
