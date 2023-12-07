@@ -3,36 +3,24 @@
 #include <stdexcept>
 namespace astar::common {
 
-Position::Position(int row, int col) : row(row), col(col) {
-}
-bool Position::IsValid() const {
-  return row >= 0 && col >= 0;
-}
-bool Position::operator==(const Position& other) const {
-  return row == other.row && col == other.col;
-}
-bool Position::operator!=(const Position& other) const {
-  return !(*this == other);
-}
-
 Grid::Grid(int rows, int cols)
     : rows_(rows), cols_(cols), grid_(rows * cols, CellType::kEmpty) {
 }
-Grid::Grid(const Grid& other)
+Grid::Grid(const Grid &other)
     : rows_(other.rows_), cols_(other.cols_), grid_(other.grid_) {
 }
-Grid::Grid(Grid&& other) noexcept
+Grid::Grid(Grid &&other) noexcept
     : rows_(other.rows_), cols_(other.cols_), grid_(std::move(other.grid_)) {
   other.rows_ = 0;
   other.cols_ = 0;
 }
-Grid& Grid::operator=(const Grid& other) {
+Grid &Grid::operator=(const Grid &other) {
   rows_ = other.rows_;
   cols_ = other.cols_;
   grid_ = other.grid_;
   return *this;
 }
-Grid& Grid::operator=(Grid&& other) noexcept {
+Grid &Grid::operator=(Grid &&other) noexcept {
   rows_ = other.rows_;
   cols_ = other.cols_;
   grid_ = std::move(other.grid_);
@@ -46,10 +34,10 @@ const int Grid::GetRows() const {
 const int Grid::GetCols() const {
   return cols_;
 }
-const CellType& Grid::At(int row, int col) const {
+const CellType &Grid::At(int row, int col) const {
   return grid_[CalculateIndex(row, col)];
 }
-CellType& Grid::At(int row, int col) {
+CellType &Grid::At(int row, int col) {
   return grid_[CalculateIndex(row, col)];
 }
 
@@ -96,6 +84,13 @@ void Grid::ToggleGoal(int row, int col) {
   } else {
     goal_ = Position(row, col);
     At(row, col) = CellType::kGoal;
+  }
+}
+void Grid::ClearPathInfo() {
+  for (auto &cell : grid_) {
+    if (cell == CellType::kPath || cell == CellType::kVisited) {
+      cell = CellType::kEmpty;
+    }
   }
 }
 Position Grid::GetGoal() const {

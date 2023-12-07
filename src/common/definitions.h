@@ -9,7 +9,8 @@ enum class CellType {
   kVisited,
   kWall,
 };
-enum class Orientation {
+// same axis has the same parity
+enum Orientation {
   kNorth,
   kEast,
   kSouth,
@@ -20,5 +21,18 @@ enum ActionCost {
   kTurn90 = 2,
   kTurn180 = 3
 };
+struct Position {
+  static const Position kInvalid;
+  int row;
+  int col;
+
+  Position(int row = -1, int col = -1);
+  bool IsValid() const;
+  bool operator==(const Position &other) const;
+  bool operator!=(const Position &other) const;
+
+  bool operator<(const Position &other) const;
+};
+int GetTurnCost(const Orientation &current, const Orientation &goal);
 }  // namespace astar::common
 #endif
