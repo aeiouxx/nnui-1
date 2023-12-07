@@ -20,7 +20,9 @@ bool Position::operator<(const Position &other) const {
   }
   return row < other.row;
 }
-
+// Same axis has the same parity
+// kNorth = 0, kSouth = 2
+// kEast = 1, kWest = 3
 int GetTurnCost(const Orientation &current, const Orientation &goal) {
   auto magic = current ^ goal;
   if (!magic) {

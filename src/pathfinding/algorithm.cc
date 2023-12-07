@@ -3,10 +3,16 @@
 #include <map>
 #include <queue>
 
+#include "../ui/maze-update.h"
 #include "wx/log.h"
 
 namespace astar::pathfinding {
 using astar::common::CellType;
+using astar::common::Grid;
+using astar::common::Orientation;
+using astar::common::Position;
+using astar::ui::MazeUpdate;
+
 bool CompareNode::operator()(const Node *lhs, const Node *rhs) const {
   return lhs->f_cost > rhs->f_cost;
 }
@@ -22,31 +28,41 @@ void AstarAlgorithm::RequestCancellation() {
 // updates are sent to the grid as they are calculated,
 // node ownership remains within the algorithm.
 
-// issue of thread safety when it comes to the grid,
-// user can reposition start / goal while the algorithm is running,
-
-// could just create a working copy of the grid.
 void AstarAlgorithm::Run(const Grid &grid, const Position &start,
                          const Orientation &start_orientation,
-                         const Position &goal) {
-  if (working_copy != nullptr) {
-    wxLogDebug("Working copy already exists, cleaning up");
+                         const Position &goal, wxEvtHandler *update_target) {
+  if (is_running.exchange(true)) {
+    wxLogError("Run called while algorithm is already running");
+    return;
+  }
+  if (working_copy != nullptr || !owned_nodes.empty()) {
+    wxLogError("Something is wrong with the resource management:\nrunning: %s",
+               is_running ? "true" : "false");
     Cleanup();
   }
   working_copy = new Grid(grid);
   std::priority_queue<Node *, std::vector<Node *>, CompareNode> openSet;
   std::map<Position, int> gCosts;
+  std::vector<ui::MazeUpdate> updatesForUi;
   int startingHeuristic = CalculateHeuristic(start, start_orientation, goal);
   Node *startNode = CreateOwnedNode(start, start_orientation, 0,
                                     0 + startingHeuristic, nullptr);
   openSet.push(startNode);
   gCosts[startNode->position] = 0;
 
+  unsigned int checks = 0;
+  ui::MazeUpdateEvent updateEvent;
   for (; !openSet.empty() && !cancellation_requested; openSet.pop()) {
     auto *current = openSet.top();
+    updatesForUi.push_back({current->position, CellType::kVisited});
+    wxLogDebug("Current(f:%d) %d,%d", current->f_cost, current->position.row,
+               current->position.col);
+    wxLogDebug("Current_parent(f:%d) %d,%d", current->f_cost,
+               current->position.row, current->position.col);
     if (current->position == goal) {
-      wxLogInfo("Found path");
-      SendPath(current);
+      wxLogDebug("Found goal in %d checks", checks);
+      EmitPath(current, update_target);
+      updatesForUi.clear();
       break;
     }
     for (const auto &orientation : kOrientations) {
@@ -64,6 +80,17 @@ void AstarAlgorithm::Run(const Grid &grid, const Position &start,
         openSet.push(neighbor);
       }
     }
+    if (++checks % checks_per_update == 0) {
+      updateEvent.SetUpdates(updatesForUi);
+      wxQueueEvent(update_target, updateEvent.Clone());
+      updatesForUi.clear();
+    }
+  }
+
+  if (updatesForUi.size() > 0) {
+    updateEvent.SetUpdates(updatesForUi);
+    wxQueueEvent(update_target, updateEvent.Clone());
+    updatesForUi.clear();
   }
   Cleanup();
 }
@@ -92,10 +119,7 @@ Node *AstarAlgorithm::CalculateNeighbor(Node *current,
       newPosition.col--;
       break;
   }
-  if (newPosition.row < 0 || newPosition.col < 0 ||
-      newPosition.row >= working_copy->GetRows() ||
-      newPosition.col >= working_copy->GetCols() ||
-      working_copy->At(newPosition.row, newPosition.col) == CellType::kWall) {
+  if (!working_copy->IsTraversable(newPosition.row, newPosition.col)) {
     return nullptr;
   }
   Node *neighbor = CreateOwnedNode(newPosition, move_direction, current->g_cost,
@@ -113,9 +137,21 @@ Node *AstarAlgorithm::CalculateNeighbor(Node *current,
 int AstarAlgorithm::CalculateHeuristic(const Position &position,
                                        const Orientation &move_direction,
                                        const Position &goal) {
-  return std::abs(position.row - goal.row) + std::abs(position.col - goal.col);
+  auto heuristic =
+      std::abs(position.row - goal.row) + std::abs(position.col - goal.col);
+  return heuristic;
 }
-void AstarAlgorithm::SendPath(Node *goal) {
+void AstarAlgorithm::EmitPath(Node *goal, wxEvtHandler *update_target) {
+  ui::MazeUpdateEvent updateEvent;
+  std::vector<MazeUpdate> path;
+  for (auto *current = goal; current != nullptr; current = current->parent) {
+    path.push_back({current->position, CellType::kPath});
+  }
+  updateEvent.SetUpdates(path);
+  // clone might be problematic, because we move the vector (should probably
+  // copy) but let's let it crash first.
+  wxQueueEvent(update_target, updateEvent.Clone());
+  Cleanup();
 }
 void AstarAlgorithm::Cleanup() {
   for (auto *node : owned_nodes) {
@@ -126,5 +162,6 @@ void AstarAlgorithm::Cleanup() {
     delete working_copy;
     working_copy = nullptr;
   }
+  is_running = false;
 }
 }  // namespace astar::pathfinding

@@ -6,14 +6,11 @@
 
 #include "../common/definitions.h"
 #include "../common/grid.h"
+#include "wx/event.h"
 namespace astar::pathfinding {
-using astar::common::ActionCost;
-using astar::common::Grid;
-using astar::common::Orientation;
-using astar::common::Position;
 struct Node {
-  Position position = Position::kInvalid;
-  Orientation orientation = Orientation::kNorth;
+  astar::common::Position position = astar::common::Position::kInvalid;
+  astar::common::Orientation orientation = astar::common::Orientation::kNorth;
   int g_cost = std::numeric_limits<int>::max();
   int f_cost = std::numeric_limits<int>::max();
 
@@ -22,35 +19,37 @@ struct Node {
 struct CompareNode {
   bool operator()(const Node *lhs, const Node *rhs) const;
 };
-// can own the A* nodes as they get transferred to the grid only in the form of
-// updates, ownership of the nodes remains within the algorithm.
-
-// will need to cleanup the nodes on cancellation request / finishing the
-// search.
 struct AstarAlgorithm {
-  // this is ugly and shouldn't be done like this
-  // but creating an iterator for the enum is a PITA
-  static const Orientation kOrientations[];
+  // because i'm too lazy to create an iterator for the enum, definitely
+  // shouldn't be done like this.
+  static const astar::common::Orientation kOrientations[];
   std::atomic_bool cancellation_requested = false;
-  std::vector<Node *> owned_nodes;
-  Grid *working_copy = nullptr;
+  std::atomic_bool is_running = false;
+  unsigned int checks_per_update = 16;
 
   ~AstarAlgorithm();
   void RequestCancellation();
-  void Run(const Grid &grid, const Position &start,
-           const Orientation &start_orientation, const Position &goal);
+  // Path will be posted to the UI via a custom wxEvent.
+  void Run(const common::Grid &grid, const common::Position &start,
+           const common::Orientation &start_orientation,
+           const common::Position &goal, wxEvtHandler *update_target = nullptr);
 
  private:
-  Node *CreateOwnedNode(const Position &position,
-                        const Orientation &orientation, int g_cost, int f_cost,
-                        Node *parent);
-  Node *CalculateNeighbor(Node *current, const Orientation &move_direction,
-                          const Position &goal);
-  int CalculateHeuristic(const Position &start,
-                         const Orientation &start_orientation,
-                         const Position &goal);
-  void SendPath(Node *goal);
+  Node *CreateOwnedNode(const common::Position &position,
+                        const common::Orientation &orientation, int g_cost,
+                        int f_cost, Node *parent);
+  Node *CalculateNeighbor(Node *current,
+                          const common::Orientation &move_direction,
+                          const common::Position &goal);
+  int CalculateHeuristic(const common::Position &start,
+                         const common::Orientation &start_orientation,
+                         const common::Position &goal);
+  void EmitPath(Node *goal, wxEvtHandler *update_target);
   void Cleanup();
+
+ private:
+  std::vector<Node *> owned_nodes;
+  common::Grid *working_copy = nullptr;
 };
 }  // namespace astar::pathfinding
 #endif

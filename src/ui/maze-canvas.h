@@ -8,15 +8,17 @@
 #include <thread>
 
 #include "../common/grid.h"
+#include "../pathfinding/algorithm.h"
 #include "maze-update.h"
 namespace astar::ui {
 class MazeCanvas : public wxPanel {
  private:
   static constexpr int kMinimumCellSize = 36;
   static const wxPoint kInvalidCell;
+  static constexpr int kResizeDebounceTime = 250;
 
  public:
-  MazeCanvas(wxWindow *parent, wxColour backgroundColor);
+  MazeCanvas(wxWindow *parent, wxColour background_color);
   ~MazeCanvas();
   void SetGrid(const astar::common::Grid &grid);
   void SetGrid(astar::common::Grid &&grid) noexcept;
@@ -31,8 +33,8 @@ class MazeCanvas : public wxPanel {
   void OnMouseMove(wxMouseEvent &event);
   void OnMouseWheel(wxMouseEvent &event);
   void OnMouseClick(wxMouseEvent &event);
-  void HandleDrag(const wxPoint &mousePosition);
-  void UpdateCursorAndInteractions(const wxPoint &mousePosition);
+  void HandleDrag(const wxPoint &mouse_position);
+  void UpdateCursorAndInteractions(const wxPoint &mouse_position);
   void OnKeyDown(wxKeyEvent &event);
   void OnKeyUp(wxKeyEvent &event);
   void OnMazeUpdate(MazeUpdateEvent &event);
@@ -40,8 +42,9 @@ class MazeCanvas : public wxPanel {
   void RenderCell(wxDC &dc, const wxPoint &cell);
   wxRect GetVisiblePortion() const;
   void UpdateSizeInformation();
-  wxBrush GetCellBrush(const common::CellType &cellType) const;
-  wxPoint GetCellFromMousePosition(const wxPoint &mousePosition) const;
+  wxBrush GetCellBrush(const common::CellType &cell_type,
+                       bool is_hovered = false) const;
+  wxPoint GetCellFromMousePosition(const wxPoint &mouse_position) const;
   void UpdateHoveredCell(const wxPoint &cell);
 
   void MaybeRunPathfinding();
@@ -58,9 +61,8 @@ class MazeCanvas : public wxPanel {
   bool shouldRenderGrid_;
   int cellSize_;
   // Pathfinding
+  pathfinding::AstarAlgorithm pathfindingAlgorithm_;
   std::thread pathfindingThread_;
-  std::atomic_bool pathfindingThreadRunning_;
-  std::atomic_bool pathfindingThreadShouldStop_;
   std::mutex gridMutex_;
 };
 }  // namespace astar::ui

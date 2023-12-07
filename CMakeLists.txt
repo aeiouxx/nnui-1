@@ -65,7 +65,7 @@ set(SOURCES src/main.cc
             src/common/definitions.cc
             src/pathfinding/algorithm.cc
             src/ui/my-frame.cc
-            src/ui/maze-panel.cc
+            src/ui/maze-canvas.cc
             src/ui/maze-update.cc)
 add_executable(astar ${EXECUTABLE_FLAGS} ${SOURCES})
 target_include_directories(astar PRIVATE ${wxWidgets_SOURCE_DIR}/include)

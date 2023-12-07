@@ -1,4 +1,4 @@
-#include "maze-panel.h"
+#include "maze-canvas.h"
 
 #include <wx/dcbuffer.h>
 
@@ -22,12 +22,13 @@ MazeCanvas::MazeCanvas(wxWindow *parent, wxColour backgroundColour)
       ctrlDown_(false),
       lastHoveredCell_(kInvalidCell),
       lastMousePosition_(wxDefaultPosition),
-      cellSize_(kMinimumCellSize) {
+      cellSize_(kMinimumCellSize),
+      pathfindingAlgorithm_() {
   SetBackgroundColour(backgroundColour);
   BindEvents();
 }
 MazeCanvas::~MazeCanvas() {
-  pathfindingThreadShouldStop_ = true;
+  pathfindingAlgorithm_.RequestCancellation();
   if (pathfindingThread_.joinable()) {
     pathfindingThread_.join();
   }
@@ -62,6 +63,8 @@ void MazeCanvas::BindEvents() {
           RenderCell(dc, oldStart);
         }
         RenderCell(dc, cell);
+
+        MaybeRunPathfinding();
       }
     }
     e.Skip();
@@ -83,6 +86,8 @@ void MazeCanvas::BindEvents() {
           RenderCell(dc, oldGoal);
         }
         RenderCell(dc, cell);
+
+        MaybeRunPathfinding();
       }
     }
     e.Skip();
@@ -117,7 +122,7 @@ void MazeCanvas::OnPaint(wxPaintEvent &event) {
 }
 void MazeCanvas::OnResize(wxSizeEvent &event) {
   shouldRenderGrid_ = false;
-  resizeDebouncer_.Start(500, true);
+  resizeDebouncer_.Start(kResizeDebounceTime, true);
 }
 void MazeCanvas::OnResizeTimer(wxTimerEvent &) {
   wxLogDebug("OnResizeTimer");
@@ -146,6 +151,10 @@ void MazeCanvas::HandleDrag(const wxPoint &mousePosition) {
   lastMousePosition_ = mousePosition;
 }
 void MazeCanvas::UpdateCursorAndInteractions(const wxPoint &mousePosition) {
+  if (pathfindingAlgorithm_.is_running) {
+    SetCursor(wxCURSOR_WAIT);
+    return;
+  }
   auto cell = GetCellFromMousePosition(mousePosition);
   if (cell != kInvalidCell && grid_.IsTraversable(cell.y, cell.x)) {
     SetCursor(wxCURSOR_ARROW);
@@ -170,6 +179,8 @@ void MazeCanvas::UpdateHoveredCell(const wxPoint &cell) {
     RenderCell(dc, lastHoveredCell_);
   }
 }
+// fixme: The offsetting when zooming doesn't really work as well as I would
+// like it to but it's a waste of time for now.
 void MazeCanvas::OnMouseWheel(wxMouseEvent &event) {
   static constexpr int pixelZoomIncrement = 4;
   wxLogDebug("OnMouseWheel");
@@ -226,17 +237,13 @@ void MazeCanvas::OnKeyUp(wxKeyEvent &event) {
 // TODO:
 // Maybe try to use blitting, we will still need to redraw the entire canvas
 // on zooming / panning.
+// I don't think I have the time to be learning OpenGL right now...
 void MazeCanvas::Render(wxDC &dc) {
   dc.Clear();
   if (!shouldRenderGrid_) {
     return;
   }
   wxRect visiblePortion = GetVisiblePortion();
-  // this is not optimized at all
-  // could use chunking to draw uniform areas within 1 draw call(e.g. one large
-  // rectangle instead of many small ones, which would also cause use to change
-  // brushes less often), dirty rects to only redraw
-  // areas that actualy need redrawing,
   int startCount = 0;
   wxLogDebug("Rendering whole grid");
   for (int row = visiblePortion.GetTop(); row <= visiblePortion.GetBottom();
@@ -264,11 +271,7 @@ void MazeCanvas::RenderCell(wxDC &dc, const wxPoint &cell) {
   int x = cell.x * cellSize_ + panOffset_.x;
   int y = cell.y * cellSize_ + panOffset_.y;
   int size = cellSize_ * zoomFactor_;
-  if (cell == lastHoveredCell_) {
-    dc.SetBrush(wxBrush(wxColour(192, 192, 192)));
-  } else {
-    dc.SetBrush(GetCellBrush(grid_.At(cell.y, cell.x)));
-  }
+  dc.SetBrush(GetCellBrush(grid_.At(cell.y, cell.x), cell == lastHoveredCell_));
   dc.SetPen(*wxTRANSPARENT_PEN);
   dc.DrawRectangle(x, y, size, size);
 }
@@ -281,11 +284,17 @@ void MazeCanvas::OnMazeUpdate(MazeUpdateEvent &event) {
   for (const auto update : event.GetUpdates()) {
     const auto pos = update.GetPosition();
     const auto type = update.GetCellType();
-    wxLogDebug("Drawing update at %d, %d, cellType = %d", pos.col, pos.row,
+    wxLogDebug("Updating grid at %d, %d, cellType = %d", pos.col, pos.row,
                type);
-    grid_.At(pos.row, pos.col) = type;
-    RenderCell(dc, wxPoint(pos.col, pos.row));
+    auto oldType = grid_.At(pos.row, pos.col);
+    if (oldType == CellType::kGoal || oldType == CellType::kStart) {
+      continue;
+    } else {
+      grid_.At(pos.row, pos.col) = type;
+    }
   }
+  Refresh();
+  Update();
 }
 // < Rendering
 // Utilities >
@@ -340,26 +349,91 @@ wxPoint MazeCanvas::GetCellFromMousePosition(
 
 // TODO: indexed color palette for
 // normal cells and hovered cells...
-wxBrush MazeCanvas::GetCellBrush(const common::CellType &cellType) const {
-  static const wxBrush kEmptyCellBrush = wxBrush(wxColour(255, 255, 255));
-  static const wxBrush kWallCellBrush = wxBrush(wxColour(0, 0, 0));
-  static const wxBrush kStartCellBrush = wxBrush(wxColour(0, 255, 0));
-  static const wxBrush kGoalCellBrush = wxBrush(wxColour(255, 0, 0));
-  static const wxBrush kVisitedCellBrush = wxBrush(wxColour(0, 0, 255));
+wxBrush MazeCanvas::GetCellBrush(const common::CellType &cell_type,
+                                 bool is_hovered) const {
+  // todo: rewrite to use a map if we need more dynamicity
+  // i know this is awful but i really don't care, do U?
+  static const wxBrush kEmptyCellBrush{wxColour(255, 255, 255)};
+  static const wxBrush kWallCellBrush{wxColour(0, 0, 0)};
+  static const wxBrush kStartCellBrush{wxColour(0, 255, 0)};
+  static const wxBrush kGoalCellBrush{wxColour(255, 0, 0)};
+  static const wxBrush kVisitedCellBrush{wxColour(0, 0, 255)};
+  static const wxBrush kPathCellBrush{wxColour(255, 255, 0)};
+  static const wxBrush kEmptyCellHoverBrush{
+      kEmptyCellBrush.GetColour().ChangeLightness(85)};
+  static const wxBrush kStartCellHoverBrush{
+      kStartCellBrush.GetColour().ChangeLightness(85)};
+  static const wxBrush kGoalCellHoverBrush{
+      kGoalCellBrush.GetColour().ChangeLightness(85)};
+  static const wxBrush kVisitedCellHoverBrush{
+      kVisitedCellBrush.GetColour().ChangeLightness(85)};
+  static const wxBrush kPathCellHoverBrush{
+      kPathCellBrush.GetColour().ChangeLightness(85)};
 
-  switch (cellType) {
+  switch (cell_type) {
     case CellType::kEmpty:
+      if (is_hovered) {
+        return kEmptyCellHoverBrush;
+      }
       return kEmptyCellBrush;
     case CellType::kWall:
       return kWallCellBrush;
     case CellType::kStart:
+      if (is_hovered) {
+        return kStartCellHoverBrush;
+      }
       return kStartCellBrush;
     case CellType::kGoal:
+      if (is_hovered) {
+        return kGoalCellHoverBrush;
+      }
       return kGoalCellBrush;
     case CellType::kVisited:
+      if (is_hovered) {
+        return kVisitedCellHoverBrush;
+      }
       return kVisitedCellBrush;
+    case CellType::kPath:
+      if (is_hovered) {
+        return kPathCellHoverBrush;
+      }
+      return kPathCellBrush;
     default:
+      if (is_hovered) {
+        return kEmptyCellHoverBrush;
+      }
       return kEmptyCellBrush;
   }
 }
+// Pathfinding >
+void MazeCanvas::MaybeRunPathfinding() {
+  if (grid_.GetGoal() == Position::kInvalid ||
+      grid_.GetStart() == Position::kInvalid) {
+    wxLogDebug("Can't run pathfinding, start or goal is invalid");
+    return;
+  }
+  if (pathfindingAlgorithm_.is_running) {
+    wxLogDebug("Pathfinding is already running, cancelling...");
+    pathfindingAlgorithm_.RequestCancellation();
+    if (pathfindingThread_.joinable()) {
+      pathfindingThread_.join();
+    }
+  }
+  grid_.ClearPathInfo();
+  // potential race condition here also...
+  auto totalSize = grid_.GetRows() * grid_.GetCols();
+  int update_per_percent = std::max(16, totalSize / 100);
+  // the larger the grid is the less frequent we want to update the UI
+  // otherwise it will be too slow, and I would need to implement event
+  // throttling
+  pathfindingAlgorithm_.checks_per_update = update_per_percent;
+  wxLogDebug("Starting pathfinding thread...");
+  pathfindingAlgorithm_.cancellation_requested = false;
+  pathfindingThread_ = std::thread([this]() {
+    pathfindingAlgorithm_.Run(grid_, grid_.GetStart(),
+                              common::Orientation::kNorth, grid_.GetGoal(),
+                              this->GetEventHandler());
+  });
+}
+// < Pathfinding
 }  // namespace astar::ui

@@ -24,12 +24,12 @@ class MazeUpdateEvent;
 wxDECLARE_EVENT(myEVT_MAZE_UPDATE, MazeUpdateEvent);
 class MazeUpdateEvent : public wxCommandEvent {
  public:
-  MazeUpdateEvent(wxEventType eventType = myEVT_MAZE_UPDATE, int id = 0);
+  MazeUpdateEvent(wxEventType event_type = myEVT_MAZE_UPDATE, int id = 0);
   MazeUpdateEvent(const MazeUpdateEvent &event);
   void SetUpdates(const std::vector<MazeUpdate> &updates);
   std::vector<MazeUpdate> GetUpdates() const;
 
-  // should not be taking ownership of the vector.
+  // should not be taking ownership of the vector, but it do.
   wxEvent *Clone() const override;
 
  private:

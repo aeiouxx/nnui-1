@@ -4,7 +4,7 @@
 #include <wx/frame.h>
 #include <wx/wx.h>
 
-#include "maze-panel.h"
+#include "maze-canvas.h"
 namespace astar::ui {
 class MyFrame : public wxFrame {
  private:
@@ -16,10 +16,10 @@ class MyFrame : public wxFrame {
   ~MyFrame();
 
  protected:
-  void OnExit(wxCommandEvent& event);
-  void OnOpenFile(wxCommandEvent& event);
-  void OnResize(wxSizeEvent& event);
-  void ProcessBitmap(const wxString& path);
+  void OnExit(wxCommandEvent &event);
+  void OnOpenFile(wxCommandEvent &event);
+  void OnResize(wxSizeEvent &event);
+  void ProcessBitmap(const wxString &path);
 
   void PreparePanel();
   void PrepareMenu();
@@ -27,9 +27,9 @@ class MyFrame : public wxFrame {
   void PrepareForScreen();
 
  private:
-  MazeCanvas* panel_;
+  MazeCanvas *panel_;
 #ifdef ASTAR_DEBUG
-  wxLog* logger_;
+  wxLog *logger_;
 #endif
 };
 }  // namespace astar::ui
