@@ -407,17 +407,17 @@ wxBrush MazeCanvas::GetCellBrush(const common::CellType &cell_type,
 }
 // Pathfinding >
 void MazeCanvas::MaybeRunPathfinding() {
+  if (pathfindingAlgorithm_.is_running) {
+    wxLogDebug("Pathfinding is already running, will be cancelled...");
+  }
+  pathfindingAlgorithm_.RequestCancellation();
+  if (pathfindingThread_.joinable()) {
+    pathfindingThread_.join();
+  }
   if (grid_.GetGoal() == Position::kInvalid ||
       grid_.GetStart() == Position::kInvalid) {
     wxLogDebug("Can't run pathfinding, start or goal is invalid");
     return;
-  }
-  if (pathfindingAlgorithm_.is_running) {
-    wxLogDebug("Pathfinding is already running, cancelling...");
-    pathfindingAlgorithm_.RequestCancellation();
-    if (pathfindingThread_.joinable()) {
-      pathfindingThread_.join();
-    }
   }
   grid_.ClearPathInfo();
   // potential race condition here also...
