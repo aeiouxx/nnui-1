@@ -133,7 +133,10 @@ void MazeCanvas::SetGrid(Grid &&grid) {
   Refresh();
 }
 void MazeCanvas::SetStartingOrientation(common::Orientation orientation) {
-  startingOrientation_ = orientation;
+  if (orientation != startingOrientation_) {
+    startingOrientation_ = orientation;
+    MaybeRunPathfinding();
+  }
 }
 common::Orientation MazeCanvas::GetStartingOrientation() const {
   return startingOrientation_;
