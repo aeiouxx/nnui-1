@@ -23,6 +23,8 @@ class MazeCanvas : public wxPanel {
   ~MazeCanvas();
   void SetGrid(const astar::common::Grid &grid);
   void SetGrid(astar::common::Grid &&grid);
+  void SetStartingOrientation(common::Orientation orientation);
+  astar::common::Orientation GetStartingOrientation() const;
   const common::Grid &GetGrid() const;
   common::Grid &GetGrid();
 
@@ -63,6 +65,7 @@ class MazeCanvas : public wxPanel {
   bool shouldRenderGrid_;
   int cellSize_;
   // Pathfinding
+  astar::common::Orientation startingOrientation_ = common::Orientation::kNorth;
   pathfinding::AstarAlgorithm pathfindingAlgorithm_;
   std::thread pathfindingThread_;
   std::mutex gridMutex_;

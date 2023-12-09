@@ -13,9 +13,13 @@ const wxSize MyFrame::kResolutions[] = {
     wxSize(1600, 900), wxSize(1920, 1080), wxSize(2560, 1440)};
 const wxColour MyFrame::kBackgroundColour{wxColour(192, 192, 192, 255)};
 MyFrame::MyFrame() : wxFrame(nullptr, wxID_ANY, "Astar", wxDefaultPosition) {
-#ifdef ASTAR_DEBUG
+#ifdef ASTAR_LOGGER_ENABLE
   logger_ = new wxLogWindow(this, "Log", true, true);
+#ifdef ASTAR_DEBUG
   logger_->SetLogLevel(wxLOG_Debug);
+#else
+  logger_->SetLogLevel(wxLOG_Info);
+#endif
   wxLog::SetActiveTarget(logger_);
 #endif
   PreparePanel();
@@ -24,7 +28,7 @@ MyFrame::MyFrame() : wxFrame(nullptr, wxID_ANY, "Astar", wxDefaultPosition) {
   PrepareForScreen();
 }
 MyFrame::~MyFrame() {
-#ifdef ASTAR_DEBUG
+#ifdef ASTAR_LOGGER_ENABLE
   if (logger_ != nullptr) {
     wxLog::SetActiveTarget(nullptr);
     delete logger_;
@@ -41,16 +45,37 @@ void MyFrame::PreparePanel() {
   Layout();
 }
 void MyFrame::PrepareMenu() {
+  using astar::common::Orientation;
   wxMenu *menuFile = new wxMenu;
   menuFile->Append(wxID_OPEN, "&Open...\tCtrl-O", "Open a bitmap file");
   menuFile->Append(wxID_EXIT);
+
+  wxMenu *orientationMenu = new wxMenu;
+  orientationMenu->AppendRadioItem(kIdOrientationStart + Orientation::kNorth,
+                                   "North", "North");
+  orientationMenu->AppendRadioItem(kIdOrientationStart + Orientation::kEast,
+                                   "East", "East");
+  orientationMenu->AppendRadioItem(kIdOrientationStart + Orientation::kSouth,
+                                   "South", "South");
+  orientationMenu->AppendRadioItem(kIdOrientationStart + Orientation::kWest,
+                                   "West", "West");
+  orientationMenu->Check(kIdOrientationStart + Orientation::kNorth, true);
   wxMenuBar *menuBar = new wxMenuBar;
   menuBar->Append(menuFile, "&File");
+  menuBar->Append(orientationMenu, "&Orientation");
   SetMenuBar(menuBar);
 }
 void MyFrame::BindEvents() {
   Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT);
   Bind(wxEVT_MENU, &MyFrame::OnOpenFile, this, wxID_OPEN);
+  Bind(wxEVT_MENU, &MyFrame::OnOrientationChange, this,
+       kIdOrientationStart + Orientation::kNorth);
+  Bind(wxEVT_MENU, &MyFrame::OnOrientationChange, this,
+       kIdOrientationStart + Orientation::kEast);
+  Bind(wxEVT_MENU, &MyFrame::OnOrientationChange, this,
+       kIdOrientationStart + Orientation::kSouth);
+  Bind(wxEVT_MENU, &MyFrame::OnOrientationChange, this,
+       kIdOrientationStart + Orientation::kWest);
   Bind(wxEVT_SIZE, &MyFrame::OnResize, this);
 }
 // literally the same as full screening on supported resolutions
@@ -81,6 +106,11 @@ void MyFrame::OnOpenFile(wxCommandEvent &event) {
 void MyFrame::OnResize(wxSizeEvent &event) {
   event.Skip();
 }
+void MyFrame::OnOrientationChange(wxCommandEvent &event) {
+  auto id = event.GetId();
+  int orientation = id - kIdOrientationStart;
+  panel_->SetStartingOrientation(static_cast<Orientation>(orientation));
+}
 void MyFrame::ProcessBitmap(const wxString &path) {
   wxProgressDialog progressDialog(
       "Processing bitmap", "Please wait while the bitmap is being loaded...",
@@ -109,6 +139,5 @@ void MyFrame::ProcessBitmap(const wxString &path) {
     progressDialog.Update(10 + 90 * y / height);
   }
   panel_->SetGrid(std::move(grid));
-  panel_->Refresh();
 }
 }  // namespace astar::ui

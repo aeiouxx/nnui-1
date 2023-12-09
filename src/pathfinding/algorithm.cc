@@ -148,14 +148,14 @@ void AstarAlgorithm::EmitPath(Node *goal, wxEvtHandler *update_target) {
     path.push_back({current->position, CellType::kPath});
   }
   updateEvent.SetUpdates(path);
-  // clone might be problematic, because we move the vector (should probably
-  // copy) but let's let it crash first.
-  wxQueueEvent(update_target, updateEvent.Clone());
   Cleanup();
+  wxQueueEvent(update_target, updateEvent.Clone());
 }
 void AstarAlgorithm::Cleanup() {
   for (auto *node : owned_nodes) {
-    delete node;
+    if (node != nullptr) {
+      delete node;
+    }
   }
   owned_nodes.clear();
   if (working_copy != nullptr) {

@@ -48,6 +48,7 @@ if (USE_CLANG AND CLANG_FOUND AND CLANGXX_FOUND)
     endif()
 endif()
 #= My actual application ========================================================
+option(ASTAR_LOGGER_ENABLE "Enable logger" OFF)
 set(EXECUTABLE_FLAGS "")
 set(ASTAR_DEFINITIONS "")
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -58,6 +59,10 @@ else()
 endif()
 if (WIN32)
   set(EXECUTABLE_FLAGS WIN32)
+endif()
+if (ASTAR_LOGGER_ENABLE)
+    message(STATUS "Logger enabled")
+    set(ASTAR_DEFINITIONS "${ASTAR_DEFINITIONS};ASTAR_LOGGER_ENABLE")
 endif()
 set(SOURCES src/main.cc
             src/astar.cc

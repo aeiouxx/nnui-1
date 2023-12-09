@@ -10,6 +10,7 @@ class MyFrame : public wxFrame {
  private:
   static const wxSize kResolutions[];
   static const wxColour kBackgroundColour;
+  static const int kIdOrientationStart = wxID_HIGHEST + 1;
 
  public:
   MyFrame();
@@ -19,6 +20,7 @@ class MyFrame : public wxFrame {
   void OnExit(wxCommandEvent &event);
   void OnOpenFile(wxCommandEvent &event);
   void OnResize(wxSizeEvent &event);
+  void OnOrientationChange(wxCommandEvent &event);
   void ProcessBitmap(const wxString &path);
 
   void PreparePanel();
@@ -28,7 +30,7 @@ class MyFrame : public wxFrame {
 
  private:
   MazeCanvas *panel_;
-#ifdef ASTAR_DEBUG
+#ifdef ASTAR_LOGGER_ENABLE
   wxLog *logger_;
 #endif
 };

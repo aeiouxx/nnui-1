@@ -13,7 +13,8 @@
       "binaryDir": "${sourceDir}/build/${presetName}/",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}"
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}",
+        "ASTAR_LOGGER_ENABLE": "ON"
       }
     },
     {

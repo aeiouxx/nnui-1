@@ -119,6 +119,7 @@ void MazeCanvas::SetGrid(const Grid &grid) {
   panOffset_ = wxDefaultPosition;
   zoomFactor_ = 1.0f;
   UpdateSizeInformation();
+  Refresh();
 }
 void MazeCanvas::SetGrid(Grid &&grid) {
   pathfindingAlgorithm_.RequestCancellation();
@@ -126,7 +127,16 @@ void MazeCanvas::SetGrid(Grid &&grid) {
     pathfindingThread_.join();
   }
   grid_ = std::move(grid);
+  panOffset_ = wxDefaultPosition;
+  zoomFactor_ = 1.0f;
   UpdateSizeInformation();
+  Refresh();
+}
+void MazeCanvas::SetStartingOrientation(common::Orientation orientation) {
+  startingOrientation_ = orientation;
+}
+common::Orientation MazeCanvas::GetStartingOrientation() const {
+  return startingOrientation_;
 }
 const Grid &MazeCanvas::GetGrid() const {
   return grid_;
@@ -462,9 +472,8 @@ void MazeCanvas::MaybeRunPathfinding() {
   wxLogDebug("Grid goal: %d, %d", grid_.GetGoal().col, grid_.GetGoal().row);
   pathfindingAlgorithm_.cancellation_requested = false;
   pathfindingThread_ = std::thread([this]() {
-    pathfindingAlgorithm_.Run(grid_, grid_.GetStart(),
-                              common::Orientation::kNorth, grid_.GetGoal(),
-                              this->GetEventHandler());
+    pathfindingAlgorithm_.Run(grid_, grid_.GetStart(), GetStartingOrientation(),
+                              grid_.GetGoal(), this->GetEventHandler());
   });
 }
 // < Pathfinding
