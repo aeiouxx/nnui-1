@@ -25,9 +25,6 @@ AstarAlgorithm::~AstarAlgorithm() {
 void AstarAlgorithm::RequestCancellation() {
   cancellation_requested = true;
 }
-// updates are sent to the grid as they are calculated,
-// node ownership remains within the algorithm.
-
 void AstarAlgorithm::Run(const Grid &grid, const Position &start,
                          const Orientation &start_orientation,
                          const Position &goal, wxEvtHandler *update_target) {
@@ -54,7 +51,6 @@ void AstarAlgorithm::Run(const Grid &grid, const Position &start,
   ui::MazeUpdateEvent updateEvent;
   for (; !openSet.empty() && !cancellation_requested; openSet.pop()) {
     auto *current = openSet.top();
-    updatesForUi.push_back({current->position, CellType::kVisited});
     if (current->position == goal) {
       wxLogDebug("Found goal in %d checks", checks);
       if (updatesForUi.size() > 0) {
@@ -64,6 +60,8 @@ void AstarAlgorithm::Run(const Grid &grid, const Position &start,
       }
       EmitPath(current, update_target);
       break;
+    } else {
+      updatesForUi.push_back({current->position, CellType::kVisited});
     }
     for (const auto &orientation : kOrientations) {
       if (cancellation_requested) {
@@ -73,7 +71,7 @@ void AstarAlgorithm::Run(const Grid &grid, const Position &start,
       if (neighbor == nullptr) {
         continue;
       }
-
+      // Either the node hasn't been visited yet or we found a cheaper path
       if (gCosts.find(neighbor->position) == gCosts.end() ||
           neighbor->g_cost < gCosts[neighbor->position]) {
         gCosts[neighbor->position] = neighbor->g_cost;
@@ -125,7 +123,7 @@ Node *AstarAlgorithm::CalculateNeighbor(Node *current,
   Node *neighbor = CreateOwnedNode(newPosition, move_direction, current->g_cost,
                                    current->f_cost, current);
   int turnCost =
-      astar::common::GetTurnCost(current->orientation, move_direction);
+      astar::common::GetTurnCost(current->orientation, neighbor->orientation);
   int moveCost = turnCost + astar::common::ActionCost::kMoveForward;
   neighbor->g_cost += moveCost;
   neighbor->f_cost =
@@ -133,7 +131,8 @@ Node *AstarAlgorithm::CalculateNeighbor(Node *current,
       CalculateHeuristic(neighbor->position, neighbor->orientation, goal);
   return neighbor;
 }
-// for now just uses manhattan distance, should be modified
+
+// Manhattan distance
 int AstarAlgorithm::CalculateHeuristic(const Position &position,
                                        const Orientation &move_direction,
                                        const Position &goal) {
