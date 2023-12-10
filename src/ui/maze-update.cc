@@ -9,7 +9,7 @@ MazeUpdateEvent::MazeUpdateEvent(wxEventType eventType, int id)
 }
 MazeUpdateEvent::MazeUpdateEvent(const MazeUpdateEvent &event)
     : wxCommandEvent(event) {
-  updates_ = std::move(event.updates_);
+  updates_ = event.updates_;
 };
 void MazeUpdateEvent::SetUpdates(const std::vector<MazeUpdate> &updates) {
   updates_ = updates;
