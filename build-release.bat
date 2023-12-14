@@ -1,7 +1,9 @@
 @echo off
 setlocal
 
-cmake --preset release
-cmake --build --preset nj-release -j 20
+if not exist build mkdir build
+cd build
+cmake ..
+cmake --build . --target ALL_BUILD --config Release -- /nologo /verbosity:minimal /maxcpucount
 %~dp0build\release\astar.exe
 endlocal

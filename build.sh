@@ -2,5 +2,5 @@
 
 
 cmake --preset debug
-cmake --build --preset nj-debug -j 20
+cmake --build --preset nj-debug -j
 ./build/debug/astar
