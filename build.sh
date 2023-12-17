@@ -1,6 +1,6 @@
 #!/bin/bash
 
 
-cmake --preset debug
-cmake --build --preset nj-debug -j
-./build/debug/astar
+cmake --preset release
+cmake --build --preset nj-release -j
+./build/release/astar
